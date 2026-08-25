@@ -37,6 +37,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import DetailProfesor from "../components/DetailProfesor";
 
 const TIPOS_IDENTIFICACION = ["CEDULA", "PASAPORTE", "TARJETA_IDENTIDAD"];
 const ESTADOS_VALIDOS = ["ACTIVO", "INACTIVO"];
@@ -67,6 +69,9 @@ const ProfesoresCrud = () => {
     estado: "ACTIVO"
   });
   const [formError, setFormError] = useState("");
+
+  const [openDetail, setOpenDetail] = useState(false);
+  const [selectedProfId, setSelectedProfId] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -143,6 +148,16 @@ const ProfesoresCrud = () => {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
+  };
+
+  const handleOpenDetail = (profId) => {
+    setSelectedProfId(profId);
+    setOpenDetail(true);
+  };
+
+  const handleCloseDetail = () => {
+    setOpenDetail(false);
+    setSelectedProfId(null);
   };
 
   const handleFormChange = (e) => {
@@ -290,7 +305,7 @@ const ProfesoresCrud = () => {
                 <TableCell sx={{ fontWeight: "bold", color: "#37474f" }}>Email Institucional</TableCell>
                 <TableCell sx={{ fontWeight: "bold", color: "#37474f" }}>Dependencia</TableCell>
                 <TableCell sx={{ fontWeight: "bold", color: "#37474f" }}>Estado</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", color: "#37474f", width: 120 }}>
+                <TableCell align="center" sx={{ fontWeight: "bold", color: "#37474f", width: 150 }}>
                   Acciones
                 </TableCell>
               </TableRow>
@@ -334,6 +349,14 @@ const ProfesoresCrud = () => {
                     </TableCell>
                     <TableCell align="center">
                       <Stack direction="row" spacing={1} justifyContent="center">
+                        <IconButton
+                          size="small"
+                          color="info"
+                          title="Ver detalle"
+                          onClick={() => handleOpenDetail(prof.id)}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
                         <IconButton size="small" color="primary" onClick={() => handleOpenEdit(prof)}>
                           <EditIcon fontSize="small" />
                         </IconButton>
@@ -517,6 +540,13 @@ const ProfesoresCrud = () => {
           </DialogActions>
         </form>
       </Dialog>
+
+      <DetailProfesor
+        open={openDetail}
+        onClose={handleCloseDetail}
+        profesorId={selectedProfId}
+        dependencias={dependencias}
+      />
     </Box>
   );
 };
