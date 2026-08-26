@@ -1,7 +1,15 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Box, Card, CardContent, Typography, Button, Alert, CircularProgress } from "@mui/material";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
 
 // Custom Google SVG Icon
 const GoogleIcon = () => (
@@ -60,13 +68,20 @@ const Login = () => {
         p: 2,
       }}
     >
-      <Card sx={{ maxWidth: 400, width: "100%", boxShadow: 6, borderRadius: 3 }}>
+      <Card
+        sx={{ maxWidth: 400, width: "100%", boxShadow: 6, borderRadius: 3 }}
+      >
         <CardContent sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: "bold", color: "#37474f" }}>
-            Faculta de salud
+          <Typography
+            variant="h4"
+            component="h1"
+            gutterBottom
+            sx={{ fontWeight: "bold", color: "#37474f" }}
+          >
+            Facultad de salud
           </Typography>
           <Typography variant="body1" sx={{ color: "#78909c", mb: 4 }}>
-            Inicia sesión para acceder al sistema de gestión
+            Inicia sesión para acceder al sistema
           </Typography>
 
           {error && (
@@ -81,7 +96,9 @@ const Login = () => {
             fullWidth
             onClick={handleLogin}
             disabled={submitting}
-            startIcon={submitting ? <CircularProgress size={20} /> : <GoogleIcon />}
+            startIcon={
+              submitting ? <CircularProgress size={20} /> : <GoogleIcon />
+            }
             sx={{
               py: 1.5,
               borderColor: "#cfd8dc",
