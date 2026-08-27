@@ -82,7 +82,7 @@ const DOCENTE_DEFAULT = {
   periodo_id: "",
   tipo_vinculacion: "",
   dedicacion: "",
-  categoria_docente: "",
+  cargo: "",
   estado: "ACTIVO",
   nivel: "",
 };
@@ -94,13 +94,7 @@ const TIPOS_VINCULACION = [
   "ASISTENTE DOC",
 ];
 const DEDICACIONES = ["COMPLETO", "PARCIAL", "H. CATEDRA"];
-const CATEGORIAS = [
-  "AUXILIAR",
-  "ASISTENTE",
-  "ASOCIADO",
-  "TITULAR",
-  "SIN CARGO",
-];
+const CARGOS = ["AUXILIAR", "ASISTENTE", "ASOCIADO", "TITULAR", "SIN CARGO"];
 const NIVELES = ["PREGRADO", "MAESTRIA", "DOCTORADO", "ESPECIALIZACION"];
 const ESTADOS = ["ACTIVO", "INACTIVO"];
 
@@ -183,7 +177,7 @@ const DatosProfesor = () => {
       periodo_id: docentePeriodo.periodo_id || "",
       tipo_vinculacion: docentePeriodo.tipo_vinculacion || "",
       dedicacion: docentePeriodo.dedicacion || "",
-      categoria_docente: docentePeriodo.categoria_docente || "",
+      cargo: docentePeriodo.cargo || "",
       estado: docentePeriodo.estado || "ACTIVO",
       nivel: docentePeriodo.nivel || "",
     });
@@ -211,7 +205,7 @@ const DatosProfesor = () => {
     if (
       !docenteForm.tipo_vinculacion ||
       !docenteForm.dedicacion ||
-      !docenteForm.categoria_docente
+      !docenteForm.cargo
     ) {
       setDocenteError("Complete los campos obligatorios.");
       return;
@@ -222,7 +216,7 @@ const DatosProfesor = () => {
       periodo_id: docenteForm.periodo_id,
       tipo_vinculacion: docenteForm.tipo_vinculacion,
       dedicacion: docenteForm.dedicacion,
-      categoria_docente: docenteForm.categoria_docente,
+      cargo: docenteForm.cargo,
       estado: docenteForm.estado,
       nivel: docenteForm.nivel || undefined,
     };
@@ -232,7 +226,7 @@ const DatosProfesor = () => {
         await updateDocentePeriodo(editingDocentePeriodo.id, {
           tipo_vinculacion: payload.tipo_vinculacion,
           dedicacion: payload.dedicacion,
-          categoria_docente: payload.categoria_docente,
+          cargo: payload.cargo,
           estado: payload.estado,
           nivel: payload.nivel,
         });
@@ -477,9 +471,7 @@ const DatosProfesor = () => {
                       <TableCell sx={{ fontWeight: "bold" }}>
                         Dedicación
                       </TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>
-                        Categoría
-                      </TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>Cargo</TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Nivel</TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Estado</TableCell>
                       <TableCell align="center" sx={{ fontWeight: "bold" }}>
@@ -502,7 +494,7 @@ const DatosProfesor = () => {
                           </TableCell>
                           <TableCell>{item.tipo_vinculacion || "-"}</TableCell>
                           <TableCell>{item.dedicacion || "-"}</TableCell>
-                          <TableCell>{item.categoria_docente || "-"}</TableCell>
+                          <TableCell>{item.cargo || "-"}</TableCell>
                           <TableCell>{item.nivel || "-"}</TableCell>
                           <TableCell>{item.estado || "-"}</TableCell>
                           <TableCell align="center">
@@ -641,18 +633,18 @@ const DatosProfesor = () => {
               </FormControl>
 
               <FormControl fullWidth required>
-                <InputLabel id="categoria-label">Categoría docente</InputLabel>
+                <InputLabel id="cargo-label">Cargo</InputLabel>
                 <Select
-                  labelId="categoria-label"
-                  name="categoria_docente"
-                  value={docenteForm.categoria_docente}
+                  labelId="cargo-label"
+                  name="cargo"
+                  value={docenteForm.cargo}
                   onChange={handleDocenteChange}
-                  label="Categoría docente"
+                  label="Cargo"
                 >
                   <MenuItem value="" disabled>
                     <em>Seleccione una opción</em>
                   </MenuItem>
-                  {CATEGORIAS.map((item) => (
+                  {CARGOS.map((item) => (
                     <MenuItem key={item} value={item}>
                       {item}
                     </MenuItem>

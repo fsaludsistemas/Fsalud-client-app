@@ -103,4 +103,25 @@ export const deleteDocentePeriodo = async (id) => {
   return response.data;
 };
 
+// Asignaciones API services
+export const getAsignacionesByProfesor = async (profesorId) => {
+  const response = await apiClient.get(`/asignaciones/profesor/${profesorId}`);
+  return response.data;
+};
+
+export const createAsignacion = async (data) => {
+  const response = await apiClient.post("/asignaciones", data);
+  return response.data;
+};
+
+export const updateAsignacion = async (id, data) => {
+  const response = await apiClient.put(`/asignaciones/${id}`, data);
+  return response.data;
+};
+
+export const deleteAsignacion = async (id) => {
+  const response = await apiClient.delete(`/asignaciones/${id}`);
+  return response.data;
+};
+
 export default apiClient;

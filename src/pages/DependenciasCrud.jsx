@@ -1,10 +1,10 @@
-import  { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getDependencias,
   createDependencia,
   updateDependencia,
-  deleteDependencia
+  deleteDependencia,
 } from "../api/apiClient";
 import {
   Box,
@@ -29,7 +29,7 @@ import {
   Select,
   Alert,
   CircularProgress,
-  Stack
+  Stack,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
@@ -44,14 +44,12 @@ const DependenciasCrud = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  // Dialog State
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingDep, setEditingDep] = useState(null); // null = creating
+  const [editingDep, setEditingDep] = useState(null);
   const [formData, setFormData] = useState({
     nombre: "",
     tipo: "ESCUELA",
-    padre_id: ""
+    padre_id: "",
   });
   const [formError, setFormError] = useState("");
 
@@ -85,7 +83,7 @@ const DependenciasCrud = () => {
     setFormData({
       nombre: dep.nombre,
       tipo: dep.tipo,
-      padre_id: dep.padre_id || ""
+      padre_id: dep.padre_id || "",
     });
     setFormError("");
     setOpenDialog(true);
@@ -96,10 +94,24 @@ const DependenciasCrud = () => {
   };
 
   const handleFormChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const getParentOptions = () => {
+    if (formData.tipo === "DEPARTAMENTO") {
+      return dependencias.filter(
+        (dep) => dep.tipo === "ESCUELA" || dep.tipo === "OFICINA",
+      );
+    }
+
+    if (formData.tipo === "SECCION") {
+      return dependencias.filter((dep) => dep.tipo === "DEPARTAMENTO");
+    }
+
+    return [];
   };
 
   const handleSubmit = async (e) => {
@@ -114,10 +126,9 @@ const DependenciasCrud = () => {
     const payload = {
       nombre: formData.nombre.trim(),
       tipo: formData.tipo,
-      padre_id: formData.padre_id || null
+      padre_id: formData.padre_id || null,
     };
 
-    // Validation: cannot select itself as parent
     if (editingDep && editingDep.id === payload.padre_id) {
       setFormError("Una dependencia no puede ser su propio padre.");
       return;
@@ -125,11 +136,9 @@ const DependenciasCrud = () => {
 
     try {
       if (editingDep) {
-        // Update
         await updateDependencia(editingDep.id, payload);
         setSuccess("Dependencia actualizada correctamente.");
       } else {
-        // Create
         await createDependencia(payload);
         setSuccess("Dependencia creada correctamente.");
       }
@@ -137,13 +146,17 @@ const DependenciasCrud = () => {
       fetchDependencias();
     } catch (err) {
       console.error(err);
-      const apiMessage = err.response?.data?.message || "Ocurrió un error al guardar la dependencia.";
+      const apiMessage =
+        err.response?.data?.message ||
+        "Ocurrió un error al guardar la dependencia.";
       setFormError(apiMessage);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Está seguro de que desea eliminar esta dependencia?")) {
+    if (
+      !window.confirm("¿Está seguro de que desea eliminar esta dependencia?")
+    ) {
       return;
     }
     setError("");
@@ -154,12 +167,12 @@ const DependenciasCrud = () => {
       fetchDependencias();
     } catch (err) {
       console.error(err);
-      const apiMessage = err.response?.data?.message || "Error al eliminar la dependencia.";
+      const apiMessage =
+        err.response?.data?.message || "Error al eliminar la dependencia.";
       setError(apiMessage);
     }
   };
 
-  // Helper to find parent name
   const getParentName = (padreId) => {
     if (!padreId) return "-";
     const parent = dependencias.find((d) => d.id === padreId);
@@ -168,20 +181,27 @@ const DependenciasCrud = () => {
 
   return (
     <Box>
-      {/* Navigation and Title */}
       <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
         <IconButton onClick={() => navigate("/")} color="primary">
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h4" component="h2" sx={{ fontWeight: "bold", color: "#37474f", flexGrow: 1 }}>
+        <Typography
+          variant="h4"
+          component="h2"
+          sx={{ fontWeight: "bold", color: "#37474f", flexGrow: 1 }}
+        >
           Gestión de Dependencias
         </Typography>
-        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleOpenCreate}>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={handleOpenCreate}
+        >
           Nueva Dependencia
         </Button>
       </Stack>
 
-      {/* Notifications */}
       {success && (
         <Alert severity="success" onClose={() => setSuccess("")} sx={{ mb: 3 }}>
           {success}
@@ -193,7 +213,6 @@ const DependenciasCrud = () => {
         </Alert>
       )}
 
-      {/* Main Table */}
       {loading ? (
         <Box display="flex" justifyContent="center" py={8}>
           <CircularProgress />
@@ -203,10 +222,19 @@ const DependenciasCrud = () => {
           <Table>
             <TableHead sx={{ bgcolor: "#f5f5f5" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: "bold", color: "#37474f" }}>Nombre</TableCell>
-                <TableCell sx={{ fontWeight: "bold", color: "#37474f" }}>Tipo</TableCell>
-                <TableCell sx={{ fontWeight: "bold", color: "#37474f" }}>Dependencia Padre</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", color: "#37474f", width: 120 }}>
+                <TableCell sx={{ fontWeight: "bold", color: "#37474f" }}>
+                  Nombre
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#37474f" }}>
+                  Tipo
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#37474f" }}>
+                  Dependencia Padre
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{ fontWeight: "bold", color: "#37474f", width: 120 }}
+                >
                   Acciones
                 </TableCell>
               </TableRow>
@@ -214,7 +242,11 @@ const DependenciasCrud = () => {
             <TableBody>
               {dependencias.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 4, color: "#9e9e9e" }}>
+                  <TableCell
+                    colSpan={4}
+                    align="center"
+                    sx={{ py: 4, color: "#9e9e9e" }}
+                  >
                     No se encontraron dependencias registradas.
                   </TableCell>
                 </TableRow>
@@ -226,10 +258,18 @@ const DependenciasCrud = () => {
                     <TableCell>{getParentName(dep.padre_id)}</TableCell>
                     <TableCell align="center">
                       <Stack direction="row" spacing={1} justifyContent="center">
-                        <IconButton size="small" color="primary" onClick={() => handleOpenEdit(dep)}>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleOpenEdit(dep)}
+                        >
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDelete(dep.id)}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(dep.id)}
+                        >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Stack>
@@ -242,7 +282,6 @@ const DependenciasCrud = () => {
         </TableContainer>
       )}
 
-      {/* Dialog for Create/Edit */}
       <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth maxWidth="sm">
         <form onSubmit={handleSubmit}>
           <DialogTitle sx={{ fontWeight: "bold", color: "#37474f" }}>
@@ -279,7 +318,12 @@ const DependenciasCrud = () => {
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth disabled={formData.tipo == "ESCUELA" || formData.tipo == "OFICINA"} >
+              <FormControl
+                fullWidth
+                disabled={
+                  formData.tipo === "ESCUELA" || formData.tipo === "OFICINA"
+                }
+              >
                 <InputLabel id="padre-label">Dependencia Padre (Opcional)</InputLabel>
                 <Select
                   labelId="padre-label"
@@ -291,8 +335,8 @@ const DependenciasCrud = () => {
                   <MenuItem value="">
                     <em>Ninguna (Raíz)</em>
                   </MenuItem>
-                  {dependencias
-                    .filter((dep) => !editingDep || dep.id !== editingDep.id) // Cannot be own parent
+                  {getParentOptions()
+                    .filter((dep) => !editingDep || dep.id !== editingDep.id)
                     .map((dep) => (
                       <MenuItem key={dep.id} value={dep.id}>
                         {dep.nombre} ({dep.tipo})
