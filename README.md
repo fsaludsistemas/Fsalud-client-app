@@ -173,6 +173,43 @@ Retorna un profesor por su ID de Firestore.
 
 **Respuesta `200`:** objeto. **`404`** si no existe.
 
+#### `GET /api/profesores/:id`
+Retorna un profesor por su ID de Firestore.
+
+**Respuesta `200`:** objeto. **`404`** si no existe.
+
+> Esta respuesta incluye `docente_periodos`, que es un array con los periodos docentes asociados al profesor.
+
+**Ejemplo de respuesta `200`:**
+```json
+{
+  "id": "prof_123",
+  "tipo_identificacion": "CEDULA",
+  "numero_identificacion": "1234567890",
+  "nombres": "Juan Carlos",
+  "apellidos": "Pérez Gómez",
+  "email_institucional": "juan.perez@correounivalle.edu.co",
+  "docente_periodos": [
+    {
+      "id": "prof_123_2026-1",
+      "profesor_id": "prof_123",
+      "periodo_id": "2026-1",
+      "tipo_vinculacion": "NOMBRADO",
+      "dedicacion": "COMPLETO",
+      "categoria_docente": "ASOCIADO",
+      "estado": "ACTIVO",
+      "nivel": "MAESTRIA",
+      "periodo": {
+        "id": "2026-1",
+        "periodo": "2026-1",
+        "createdAt": "2026-08-25T15:00:00.000Z"
+      }
+    }
+  ]
+}
+```
+
+
 ---
 
 #### `PUT /api/profesores/:id`
@@ -205,6 +242,168 @@ Elimina un profesor.
 ```
 
 ---
+
+
+---
+
+### 📅 Periodos
+
+La colección `periodos` se usa como catálogo oficial para los periodos académicos. El `id` del documento es el mismo valor del periodo, por ejemplo `2026-1`.
+
+
+**Respuesta `409`:**
+```json
+{ "message": "Ya existe ese periodo" }
+```
+
+---
+
+#### `GET /api/periodos`
+Retorna todos los periodos registrados.
+
+**Respuesta `200`:**
+```json
+[
+  {
+    "id": "2026-1",
+    "periodo": "2026-1",
+    "createdAt": "2026-08-25T15:00:00.000Z"
+  }
+]
+```
+
+
+### 👩‍🏫 Docente Periodos
+
+Esta colección representa la relación entre un profesor y un periodo académico.
+
+#### `POST /api/docente-periodos`
+Crea un registro de docente por periodo.
+
+**Body:**
+```json
+{
+  "profesor_id": "prof_123",
+  "periodo_id": "2026-1",
+  "tipo_vinculacion": "NOMBRADO",
+  "dedicacion": "COMPLETO",
+  "categoria_docente": "ASOCIADO",
+  "estado": "ACTIVO",
+  "nivel": "MAESTRIA"
+}
+```
+
+**Campos obligatorios:**
+- `profesor_id`
+- `periodo_id`
+- `tipo_vinculacion`
+- `dedicacion`
+- `categoria_docente`
+
+**Campos opcionales:**
+- `estado` tiene default `ACTIVO`
+- `nivel`
+
+**Respuesta `201`:**
+```json
+{
+  "id": "prof_123_2026-1",
+  "profesor_id": "prof_123",
+  "periodo_id": "2026-1",
+  "tipo_vinculacion": "NOMBRADO",
+  "dedicacion": "COMPLETO",
+  "categoria_docente": "ASOCIADO",
+  "estado": "ACTIVO",
+  "nivel": "MAESTRIA",
+  "createdAt": "2026-08-25T15:00:00.000Z",
+  "periodo": {
+    "id": "2026-1",
+    "periodo": "2026-1",
+    "createdAt": "2026-08-25T15:00:00.000Z"
+  }
+}
+```
+Tipos de vinculacion disponibles: 'NOMBRADO', 'CONTRATISTA', 'AD-HONOREM', 'ASISTENTE DOC'
+
+Tipos de dedicacion disponibles: 'COMPLETO', 'PARCIAL', 'H. CATEDRA'
+
+Tipos de categoria docente disponibles: 'AUXILIAR', 'ASISTENTE', 'ASOCIADO', 'TITULAR', 'SIN CARGO'
+
+Tipos de nivel disponibles: 'PREGRADO', 'MAESTRIA', 'DOCTORADO', 'ESPECIALIZACION']
+
+**Posibles errores:**
+- `400` si el profesor no existe
+- `400` si el periodo no existe
+- `409` si ya existe un registro para ese profesor y periodo
+
+---
+
+#### `GET /api/docente-periodos`
+Retorna todos los registros de docente-periodo.
+
+**Respuesta `200`:**
+```json
+[
+  {
+    "id": "prof_123_2026-1",
+    "profesor_id": "prof_123",
+    "periodo_id": "2026-1",
+    "tipo_vinculacion": "NOMBRADO",
+    "dedicacion": "COMPLETO",
+    "categoria_docente": "ASOCIADO",
+    "estado": "ACTIVO",
+    "nivel": "MAESTRIA",
+    "periodo": {
+      "id": "2026-1",
+      "periodo": "2026-1"
+    }
+  }
+]
+```
+
+---
+
+#### `GET /api/docente-periodos/:id`
+Retorna un registro por su ID compuesto.
+
+**Ejemplo:** `GET /api/docente-periodos/prof_123_2026-1`
+
+**Respuesta `200`:** objeto del docente-periodo con el periodo expandido. **`404`** si no existe.
+
+---
+
+#### `PUT /api/docente-periodos/:id`
+Actualiza parcialmente un registro.
+
+**No se permite actualizar:**
+- `profesor_id`
+- `periodo_id`
+
+**Body (ejemplo):**
+```json
+{
+  "estado": "INACTIVO",
+  "dedicacion": "PARCIAL"
+}
+```
+
+**Respuesta `200`:** objeto actualizado con el periodo expandido.
+
+**Respuesta `400`:**
+```json
+{ "message": "No se permite actualizar profesor_id o periodo_id. Elimina y crea un nuevo registro." }
+```
+
+---
+
+#### `DELETE /api/docente-periodos/:id`
+Elimina un registro de docente-periodo.
+
+**Respuesta `200`:**
+```json
+{ "message": "DocentePeriodo eliminado correctamente" }
+```
+
 
 ## Respuestas de error comunes
 
