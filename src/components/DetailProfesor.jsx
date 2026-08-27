@@ -13,7 +13,7 @@ import {
   Alert,
   Divider,
   Avatar,
-  Grid
+  Grid,
 } from "@mui/material";
 
 const DetailRow = ({ label, value }) => (
@@ -106,13 +106,21 @@ const DetailProfesor = ({ open, onClose, profesorId, dependencias = [] }) => {
               <Avatar
                 src={profesor.foto_url || undefined}
                 alt={`${profesor.nombres} ${profesor.apellidos}`}
-                sx={{ width: 72, height: 72, bgcolor: "#546e7a", fontSize: "1.5rem" }}
+                sx={{
+                  width: 72,
+                  height: 72,
+                  bgcolor: "#546e7a",
+                  fontSize: "1.5rem",
+                }}
               >
                 {profesor.nombres?.[0]}
                 {profesor.apellidos?.[0]}
               </Avatar>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: "bold", color: "#37474f" }}>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: "bold", color: "#37474f" }}
+                >
                   {profesor.nombres} {profesor.apellidos}
                 </Typography>
                 <Box
@@ -125,8 +133,9 @@ const DetailProfesor = ({ open, onClose, profesorId, dependencias = [] }) => {
                     borderRadius: 1,
                     fontSize: "0.75rem",
                     fontWeight: "bold",
-                    bgcolor: profesor.estado === "ACTIVO" ? "#e8f5e9" : "#ffebee",
-                    color: profesor.estado === "ACTIVO" ? "#2e7d32" : "#c62828"
+                    bgcolor:
+                      profesor.estado === "ACTIVO" ? "#e8f5e9" : "#ffebee",
+                    color: profesor.estado === "ACTIVO" ? "#2e7d32" : "#c62828",
                   }}
                 >
                   {profesor.estado}
@@ -137,23 +146,66 @@ const DetailProfesor = ({ open, onClose, profesorId, dependencias = [] }) => {
             <Divider />
 
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
+              >
                 Identificación
               </Typography>
               <Grid container spacing={2}>
-                <DetailRow label="Tipo de identificación" value={profesor.tipo_identificacion} />
-                <DetailRow label="Número de identificación" value={profesor.numero_identificacion} />
+                <DetailRow
+                  label="Tipo de identificación"
+                  value={profesor.tipo_identificacion}
+                />
+                <DetailRow
+                  label="Número de identificación"
+                  value={profesor.numero_identificacion}
+                />
               </Grid>
             </Box>
-
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
+              >
+                Vinculación
+              </Typography>
+              <Grid container spacing={2}>
+                <DetailRow
+                  label="Fecha de vinculación"
+                  value={profesor.fecha_vinculacion}
+                />
+                <Grid size={{ xs: 12 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                  >
+                    Dependencia actual
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 500, color: "#37474f" }}
+                  >
+                    {getDependenciaText(profesor.dependencia_actual)}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Box>
             <Divider />
 
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
+              >
                 Contacto
               </Typography>
               <Grid container spacing={2}>
-                <DetailRow label="Email institucional" value={profesor.email_institucional} />
+                <DetailRow
+                  label="Email institucional"
+                  value={profesor.email_institucional}
+                />
                 <DetailRow label="Teléfono" value={profesor.telefono} />
               </Grid>
             </Box>
@@ -161,33 +213,25 @@ const DetailProfesor = ({ open, onClose, profesorId, dependencias = [] }) => {
             <Divider />
 
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
+              >
                 Datos personales
               </Typography>
               <Grid container spacing={2}>
-                <DetailRow label="Lugar de nacimiento" value={profesor.lugar_nacimiento} />
-                <DetailRow label="Fecha de nacimiento" value={profesor.fecha_nacimiento} />
+                <DetailRow
+                  label="Lugar de nacimiento"
+                  value={profesor.lugar_nacimiento}
+                />
+                <DetailRow
+                  label="Fecha de nacimiento"
+                  value={profesor.fecha_nacimiento}
+                />
               </Grid>
             </Box>
 
             <Divider />
-
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}>
-                Vinculación
-              </Typography>
-              <Grid container spacing={2}>
-                <DetailRow label="Fecha de vinculación" value={profesor.fecha_vinculacion} />
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Dependencia actual
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 500, color: "#37474f" }}>
-                    {getDependenciaText(profesor.dependencia_actual)}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Box>
 
             {(profesor.createdAt || profesor.updatedAt) && (
               <>

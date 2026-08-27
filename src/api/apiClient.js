@@ -76,4 +76,31 @@ export const deleteProfesor = async (id) => {
   return response.data;
 };
 
+// Periodos API services
+export const getPeriodos = async () => {
+  const response = await apiClient.get("/periodos");
+  return response.data;
+};
+
+// Docente Periodos API services
+export const getDocentePeriodos = async () => {
+  const response = await apiClient.get("/docente-periodos");
+  return response.data;
+};
+
+export const createDocentePeriodo = async (data) => {
+  const response = await apiClient.post("/docente-periodos", data);
+  return response.data;
+};
+
+export const updateDocentePeriodo = async (id, data) => {
+  const response = await apiClient.put(`/docente-periodos/${id}`, data);
+  return response.data;
+};
+
+export const deleteDocentePeriodo = async (id) => {
+  const response = await apiClient.delete(`/docente-periodos/${id}`);
+  return response.data;
+};
+
 export default apiClient;
