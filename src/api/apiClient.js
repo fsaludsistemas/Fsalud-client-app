@@ -124,4 +124,25 @@ export const deleteAsignacion = async (id) => {
   return response.data;
 };
 
+// Credenciales API services
+export const getCredencialesByProfesor = async (profesorId) => {
+  const response = await apiClient.get(`/credenciales/${profesorId}`);
+  return response.data;
+};
+
+export const createCredenciales = async (data) => {
+  const response = await apiClient.post("/credenciales", data);
+  return response.data;
+};
+
+export const updateCredenciales = async (profesorId, data) => {
+  const response = await apiClient.put(`/credenciales/${profesorId}`, data);
+  return response.data;
+};
+
+export const deleteCredenciales = async (profesorId) => {
+  const response = await apiClient.delete(`/credenciales/${profesorId}`);
+  return response.data;
+};
+
 export default apiClient;
