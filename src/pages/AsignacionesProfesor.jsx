@@ -39,6 +39,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import DetailProfesor from "../components/DetailProfesor";
 
 const ProfesorTabs = ({ value, onChange, profesorId }) => (
   <Tabs
@@ -266,6 +267,10 @@ const AsignacionesProfesor = () => {
           Asignaciones del Profesor
         </Typography>
       </Stack>
+
+      {!loading && !error && profesor && (
+        <DetailProfesor profesor={profesor} docentePeriodos={docentePeriodos} />
+      )}
 
       <ProfesorTabs
         value={`/profesores/${id}/asignaciones`}

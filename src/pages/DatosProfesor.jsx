@@ -45,6 +45,7 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import DetailProfesor from "../components/DetailProfesor";
 
 const DetailRow = ({ label, value, action }) => (
   <Grid size={{ xs: 12, sm: 6 }}>
@@ -141,17 +142,6 @@ const DatosProfesor = () => {
   useEffect(() => {
     if (id) fetchData();
   }, [id]);
-
-  const dependenciaText = useMemo(() => {
-    if (!profesor?.dependencia_actual) return "—";
-    const depActual = profesor.dependencia_actual;
-    const depId =
-      depActual.seccion_id ||
-      depActual.departamento_id ||
-      depActual.escuela_o_oficina_id;
-    const dep = dependencias.find((d) => d.id === depId);
-    return dep ? `${dep.nombre} (${dep.tipo})` : "—";
-  }, [profesor, dependencias]);
 
   const correoCompleto = profesor?.email_institucional || "";
   const telefono = profesor?.telefono || "";
@@ -279,6 +269,10 @@ const DatosProfesor = () => {
         </Typography>
       </Stack>
 
+      {!loading && !error && profesor && (
+        <DetailProfesor profesor={profesor} docentePeriodos={docentePeriodos} />
+      )}
+
       <ProfesorTabs
         value={`/profesores/${id}/datos`}
         onChange={(_, next) => navigate(next)}
@@ -300,76 +294,8 @@ const DatosProfesor = () => {
       {!loading && !error && profesor && (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Stack spacing={3}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Avatar
-                src={profesor.foto_url || undefined}
-                alt={`${profesor.nombres} ${profesor.apellidos}`}
-                sx={{
-                  width: 72,
-                  height: 72,
-                  bgcolor: "#546e7a",
-                  fontSize: "1.5rem",
-                }}
-              >
-                {profesor.nombres?.[0]}
-                {profesor.apellidos?.[0]}
-              </Avatar>
-              <Box>
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: "bold", color: "#37474f" }}
-                >
-                  {profesor.nombres} {profesor.apellidos}
-                </Typography>
-                <DetailRow label="Dependencia actual" value={dependenciaText} />
-              </Box>
-            </Stack>
-
-            <Divider />
 
             <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
-              >
-                Identificación
-              </Typography>
-              <Grid container spacing={2}>
-                <DetailRow
-                  label="Tipo de identificación"
-                  value={profesor.tipo_identificacion}
-                />
-                <DetailRow
-                  label="Número de identificación"
-                  value={profesor.numero_identificacion}
-                />
-              </Grid>
-            </Box>
-
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
-              >
-                Vinculación
-              </Typography>
-              <Grid container spacing={2}>
-                <DetailRow
-                  label="Fecha de vinculación"
-                  value={profesor.fecha_vinculacion}
-                />
-              </Grid>
-            </Box>
-
-            <Divider />
-
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
-              >
-                Contacto
-              </Typography>
               <Grid container spacing={2}>
                 <DetailRow
                   label="Email institucional"
@@ -411,7 +337,18 @@ const DatosProfesor = () => {
                 />
               </Grid>
             </Box>
-
+            <Box>
+              <Grid container spacing={2}>
+                <DetailRow
+                  label="Lugar de nacimiento"
+                  value={profesor.lugar_nacimiento}
+                />
+                <DetailRow
+                  label="Fecha de nacimiento"
+                  value={profesor.fecha_nacimiento}
+                />
+              </Grid>
+            </Box>
             <Divider />
 
             <Box>
@@ -472,7 +409,7 @@ const DatosProfesor = () => {
                         Dedicación
                       </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Cargo</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>Nivel</TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>Nivel Académico</TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Estado</TableCell>
                       <TableCell align="center" sx={{ fontWeight: "bold" }}>
                         Acciones
@@ -530,24 +467,7 @@ const DatosProfesor = () => {
 
             <Divider />
 
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
-              >
-                Datos personales
-              </Typography>
-              <Grid container spacing={2}>
-                <DetailRow
-                  label="Lugar de nacimiento"
-                  value={profesor.lugar_nacimiento}
-                />
-                <DetailRow
-                  label="Fecha de nacimiento"
-                  value={profesor.fecha_nacimiento}
-                />
-              </Grid>
-            </Box>
+
           </Stack>
         </Paper>
       )}

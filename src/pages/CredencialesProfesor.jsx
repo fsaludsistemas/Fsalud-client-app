@@ -5,6 +5,7 @@ import {
   getCredencialesByProfesor,
   createCredenciales,
   updateCredenciales,
+  getDocentePeriodos,
 } from "../api/apiClient";
 import {
   Box,
@@ -41,6 +42,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import DetailProfesor from "../components/DetailProfesor";
 
 const ProfesorTabs = ({ value, onChange, profesorId }) => (
   <Tabs
@@ -452,6 +454,7 @@ const CredencialesProfesor = () => {
   const navigate = useNavigate();
   const [profesor, setProfesor] = useState(null);
   const [credenciales, setCredenciales] = useState(null);
+  const [docentePeriodos, setDocentePeriodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -472,8 +475,14 @@ const CredencialesProfesor = () => {
     setLoading(true);
     setError("");
     try {
-      const profData = await getProfesorById(id);
+      const [profData, docentePeriodosData] = await Promise.all([
+        getProfesorById(id),
+        getDocentePeriodos(),
+      ]);
       setProfesor(profData);
+      setDocentePeriodos(
+        (docentePeriodosData || []).filter((dp) => dp.profesor_id === id),
+      );
       try {
         const credData = await getCredencialesByProfesor(id);
         setCredenciales(credData);
@@ -636,10 +645,8 @@ const CredencialesProfesor = () => {
         </Button>
       </Stack>
 
-      {profesor && (
-        <Typography variant="subtitle1" sx={{ mb: 2, color: "#546e7a" }}>
-          {profesor.nombres} {profesor.apellidos}
-        </Typography>
+      {!loading && !error && profesor && (
+        <DetailProfesor profesor={profesor} docentePeriodos={docentePeriodos} />
       )}
 
       <ProfesorTabs
@@ -679,7 +686,7 @@ const CredencialesProfesor = () => {
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Stack direction="row" alignItems="center" spacing={2} sx={{ width: "100%", pr: 2 }}>
                     <Typography sx={{ fontWeight: 600, color: "#37474f", flexGrow: 1 }}>
-                      {factor.label}
+                      {factor.label}+{}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {items.length} registro{items.length === 1 ? "" : "s"}
