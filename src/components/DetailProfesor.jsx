@@ -1,269 +1,102 @@
 import { useEffect, useState } from "react";
-import { getProfesorById } from "../api/apiClient";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  Stack,
-  CircularProgress,
-  Alert,
-  Divider,
-  Avatar,
-  Grid,
-} from "@mui/material";
+import { Box, Typography, Stack, Avatar, Grid, Paper, Divider } from "@mui/material";
+import { getDependencias } from "../api/apiClient";
 
 const DetailRow = ({ label, value }) => (
-  <Grid size={{ xs: 12, sm: 6 }}>
-    <Typography variant="caption" color="text.secondary" display="block">
-      {label}
-    </Typography>
-    <Typography variant="body1" sx={{ fontWeight: 500, color: "#37474f" }}>
+  <Grid size={{ xs: 6, sm: 3, md: 2.4 }}>
+    <Typography variant="body2" sx={{ fontWeight: 500, color: "#37474f" }}>
       {value || "—"}
     </Typography>
   </Grid>
 );
 
-const DetailProfesor = ({ open, onClose, profesorId, dependencias = [] }) => {
-  const [profesor, setProfesor] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const getDependenciaNombre = (id) => {
-    if (!id) return null;
-    const dep = dependencias.find((d) => d.id === id);
-    return dep ? `${dep.nombre} (${dep.tipo})` : id;
-  };
-
-  const getDependenciaText = (depActual) => {
-    if (!depActual) return "—";
-
-    const partes = [];
-    const escuela = getDependenciaNombre(depActual.escuela_o_oficina_id);
-    const departamento = getDependenciaNombre(depActual.departamento_id);
-    const seccion = getDependenciaNombre(depActual.seccion_id);
-
-    if (escuela) partes.push(`Escuela/Oficina: ${escuela}`);
-    if (departamento) partes.push(`Departamento: ${departamento}`);
-    if (seccion) partes.push(`Sección: ${seccion}`);
-
-    return partes.length > 0 ? partes.join(" · ") : "—";
-  };
+const DetailProfesor = ({ profesor, docentePeriodos = [] }) => {
+  const [dependencias, setDependencias] = useState([]);
 
   useEffect(() => {
-    if (!open || !profesorId) {
-      return;
-    }
-
-    const fetchData = async () => {
-      setLoading(true);
-      setError("");
-      setProfesor(null);
+    const fetchDeps = async () => {
       try {
-        const profData = await getProfesorById(profesorId);
-        setProfesor(profData);
+        const deps = await getDependencias();
+        setDependencias(deps || []);
       } catch (err) {
         console.error(err);
-        setError("Error al cargar la información del profesor.");
-      } finally {
-        setLoading(false);
       }
     };
+    fetchDeps();
+  }, []);
 
-    fetchData();
-  }, [open, profesorId]);
+  if (!profesor) return null;
 
-  const handleClose = () => {
-    setProfesor(null);
-    setError("");
-    onClose();
+  let dependenciaText = "—";
+  if (profesor.dependencia_actual && dependencias.length > 0) {
+    const depActual = profesor.dependencia_actual;
+    const depId =
+      depActual.seccion_id ||
+      depActual.departamento_id ||
+      depActual.escuela_o_oficina_id;
+    const dep = dependencias.find((d) => d.id === depId);
+    if (dep) {
+      dependenciaText = `${dep.nombre} (${dep.tipo})`;
+    }
+  }
+
+  const docenteActivo = docentePeriodos.find((d) => d.estado === "ACTIVO") || docentePeriodos[0];
+
+  const formatIdType = (tipo) => {
+    switch (tipo) {
+      case 'CEDULA': return 'CC';
+      case 'PASAPORTE': return 'PP';
+      case 'TARJETA_IDENTIDAD': return 'TI';
+      default: return tipo;
+    }
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
-      <DialogTitle sx={{ fontWeight: "bold", color: "#37474f" }}>
-        Detalle del Profesor
-      </DialogTitle>
-      <DialogContent dividers>
-        {loading && (
-          <Box display="flex" justifyContent="center" py={6}>
-            <CircularProgress />
-          </Box>
-        )}
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        {!loading && !error && profesor && (
-          <Stack spacing={3}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Avatar
-                src={profesor.foto_url || undefined}
-                alt={`${profesor.nombres} ${profesor.apellidos}`}
-                sx={{
-                  width: 72,
-                  height: 72,
-                  bgcolor: "#546e7a",
-                  fontSize: "1.5rem",
-                }}
-              >
-                {profesor.nombres?.[0]}
-                {profesor.apellidos?.[0]}
-              </Avatar>
-              <Box>
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: "bold", color: "#37474f" }}
-                >
-                  {profesor.nombres} {profesor.apellidos}
-                </Typography>
-                <Box
-                  component="span"
-                  sx={{
-                    display: "inline-block",
-                    mt: 0.5,
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 1,
-                    fontSize: "0.75rem",
-                    fontWeight: "bold",
-                    bgcolor:
-                      profesor.estado === "ACTIVO" ? "#e8f5e9" : "#ffebee",
-                    color: profesor.estado === "ACTIVO" ? "#2e7d32" : "#c62828",
-                  }}
-                >
-                  {profesor.estado}
-                </Box>
-              </Box>
-            </Stack>
-
-            <Divider />
-
+    <Paper sx={{ p: 3, borderRadius: 3, mb: 3, boxShadow: 1 }}>
+      <Stack direction="row" spacing={3} alignItems="center">
+        <Avatar
+          src={profesor.foto_url || undefined}
+          alt={`${profesor.nombres} ${profesor.apellidos}`}
+          sx={{
+            width: 60,
+            height: 60,
+            bgcolor: "#546e7a",
+            fontSize: "2.5rem",
+          }}
+        >
+          {profesor.nombres?.[0]}
+          {profesor.apellidos?.[0]}
+        </Avatar>
+        <Box flex={1}>
+          <Typography variant="h5" sx={{ fontWeight: "bold", color: "#37474f", mb: 0.5 }}>
+            {profesor.nombres} {profesor.apellidos}
+          </Typography>
+          
+          <Stack direction="column" spacing={0.5} sx={{ mb: 1 }}>
             <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
-              >
-                Identificación
+              <Typography variant="body2" sx={{ fontWeight: 500, color: "#37474f" }}>
+                {formatIdType(profesor.tipo_identificacion)} - {profesor.numero_identificacion}
               </Typography>
-              <Grid container spacing={2}>
-                <DetailRow
-                  label="Tipo de identificación"
-                  value={profesor.tipo_identificacion}
-                />
-                <DetailRow
-                  label="Número de identificación"
-                  value={profesor.numero_identificacion}
-                />
-              </Grid>
             </Box>
             <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
-              >
-                Vinculación
+              <Typography variant="body2" sx={{ fontWeight: 500, color: "#37474f" }}>
+                {dependenciaText}
               </Typography>
-              <Grid container spacing={2}>
-                <DetailRow
-                  label="Fecha de vinculación"
-                  value={profesor.fecha_vinculacion}
-                />
-                <Grid size={{ xs: 12 }}>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                  >
-                    Dependencia actual
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{ fontWeight: 500, color: "#37474f" }}
-                  >
-                    {getDependenciaText(profesor.dependencia_actual)}
-                  </Typography>
-                </Grid>
-              </Grid>
             </Box>
-            <Divider />
-
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
-              >
-                Contacto
-              </Typography>
-              <Grid container spacing={2}>
-                <DetailRow
-                  label="Email institucional"
-                  value={profesor.email_institucional}
-                />
-                <DetailRow label="Teléfono" value={profesor.telefono} />
-              </Grid>
-            </Box>
-
-            <Divider />
-
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}
-              >
-                Datos personales
-              </Typography>
-              <Grid container spacing={2}>
-                <DetailRow
-                  label="Lugar de nacimiento"
-                  value={profesor.lugar_nacimiento}
-                />
-                <DetailRow
-                  label="Fecha de nacimiento"
-                  value={profesor.fecha_nacimiento}
-                />
-              </Grid>
-            </Box>
-
-            <Divider />
-
-            {(profesor.createdAt || profesor.updatedAt) && (
-              <>
-                <Divider />
-                {/** 
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, color: "#546e7a", fontWeight: "bold" }}>
-                    Registro
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <DetailRow
-                      label="Fecha de creación"
-                      value={profesor.createdAt ? new Date(profesor.createdAt).toLocaleString() : null}
-                    />
-                    <DetailRow
-                      label="Última actualización"
-                      value={profesor.updatedAt ? new Date(profesor.updatedAt).toLocaleString() : null}
-                    />
-                  </Grid>
-                </Box>
-*/}
-              </>
-            )}
           </Stack>
-        )}
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={handleClose} variant="contained" color="primary">
-          Cerrar
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </Box>
+      </Stack>
+
+      <Divider sx={{ my: 2 }} />
+
+      <Grid container spacing={0.5}>
+        <DetailRow label="Vinculación" value={docenteActivo?.tipo_vinculacion} />
+        <DetailRow label="Dedicación" value={docenteActivo?.dedicacion} />
+        <DetailRow label="Cargo" value={docenteActivo?.cargo} />
+        <DetailRow label="Nivel" value={docenteActivo?.nivel} />
+        <DetailRow label="Fecha de vinculación" value={profesor.fecha_vinculacion} />
+      </Grid>
+    </Paper>
   );
 };
 
