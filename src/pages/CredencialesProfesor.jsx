@@ -686,7 +686,7 @@ const CredencialesProfesor = () => {
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Stack direction="row" alignItems="center" spacing={2} sx={{ width: "100%", pr: 2 }}>
                     <Typography sx={{ fontWeight: 600, color: "#37474f", flexGrow: 1 }}>
-                      {factor.label}+{}
+                      {factor.label}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {items.length} registro{items.length === 1 ? "" : "s"}
