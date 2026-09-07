@@ -36,6 +36,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Chip,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
@@ -64,6 +65,7 @@ const ProfesorTabs = ({ value, onChange, profesorId }) => (
 
 const emptyCredenciales = (profesorId) => ({
   profesor_id: profesorId,
+  eventos_credenciales: [],
   titulos_universitarios: { pregrado: [], posgrado: [] },
   historial_categoria: [],
   experiencia_calificada: { tiempo_parcial: [], hora_catedra: [] },
@@ -94,61 +96,145 @@ const toNumber = (value) => {
 
 const newItemId = (prefix) => `${prefix}_${Date.now()}`;
 
+// resumenKey → campo en credenciales.resumen_puntos que corresponde a cada factor
 const FACTORES = [
+  {
+    key: "eventos_credenciales",
+    label: "Eventos de credenciales",
+    idPrefix: "evento",
+    accumulatedKey: "total_puntos_acumulado",
+    columns: [
+      { key: "numero_evento", label: "Evento N.°" },
+      { key: "clase", label: "Clase" },
+      { key: "dedicacion", label: "Dedicación" },
+      { key: "factores_puntaje", label: "Factores de puntaje" },
+      { key: "puntos_del_evento", label: "Puntos del evento" },
+      { key: "total_puntos_acumulado", label: "Total acumulado" },
+      { key: "soporte", label: "Soporte" },
+    ],
+    fields: [
+      {
+        name: "numero_evento",
+        label: "Evento N.°",
+        type: "number",
+        required: true,
+      },
+      {
+        name: "clase",
+        label: "Clase",
+        type: "select",
+        options: ["Inclusión", "Ascenso", "Actualización"],
+        required: true,
+      },
+      { name: "dedicacion", label: "Dedicación", required: true },
+      {
+        name: "soporte_acta_ccs",
+        path: ["soporte", "acta_ccs"],
+        label: "Acta CCS",
+      },
+      {
+        name: "soporte_fecha",
+        path: ["soporte", "fecha"],
+        label: "Fecha del soporte",
+        type: "date",
+      },
+      {
+        name: "soporte_firma_presidente_url",
+        path: ["soporte", "firma_presidente_url"],
+        label: "URL firma del presidente",
+      },
+    ],
+  },
   {
     key: "titulos_pregrado",
     label: "Títulos universitarios — Pregrado",
     idPrefix: "tit",
+    accumulatedKey: "acumulado",
+    // columns: todo lo que el backend devuelve (incluye puntos calculados)
     columns: [
       { key: "evento_no", label: "Evento N.°" },
-      { key: "fecha_inicio", label: "Fecha inicio", type: "date" },
-      { key: "fecha_fin", label: "Fecha fin", type: "date" },
+      { key: "fecha_inicio", label: "Fecha de inicio", type: "date" },
+      { key: "fecha_fin", label: "Fecha de fin", type: "date" },
       { key: "titulo", label: "Título" },
       { key: "institucion_lugar", label: "Institución / lugar" },
       { key: "fecha_grado", label: "Fecha de grado", type: "date" },
       { key: "puntos", label: "Puntos" },
-      { key: "acumulado", label: "Acumulado" },
     ],
+    // fields: solo lo que el usuario ingresa (SIN campos de puntaje)
     fields: [
       { name: "evento_no", label: "Evento N.°", type: "number" },
+      {
+        name: "tipo_pregrado",
+        label: "Tipo de pregrado",
+        type: "select",
+        options: ["MEDICINA_O_MUSICA", "OTROS_PROFESIONALES"],
+        optionLabels: [
+          "Medicina o composición musical (183 pts)",
+          "Otras profesiones (178 pts)",
+        ],
+        required: true,
+      },
       { name: "titulo", label: "Título", required: true },
-      { name: "institucion_lugar", label: "Institución / lugar", required: true },
+      {
+        name: "institucion_lugar",
+        label: "Institución / lugar",
+        required: true,
+      },
       { name: "fecha_inicio", label: "Fecha inicio", type: "date" },
       { name: "fecha_fin", label: "Fecha fin", type: "date" },
       { name: "fecha_grado", label: "Fecha de grado", type: "date" },
-      { name: "puntos", label: "Puntos", type: "number" },
-      { name: "acumulado", label: "Acumulado", type: "number" },
     ],
   },
   {
     key: "titulos_posgrado",
     label: "Títulos universitarios — Posgrado",
     idPrefix: "tit",
+    accumulatedKey: "acumulado",
     columns: [
       { key: "evento_no", label: "Evento N.°" },
-      { key: "fecha_inicio", label: "Fecha inicio", type: "date" },
-      { key: "fecha_fin", label: "Fecha fin", type: "date" },
+      { key: "fecha_inicio", label: "Fecha de inicio", type: "date" },
+      { key: "fecha_fin", label: "Fecha de fin", type: "date" },
       { key: "titulo", label: "Título" },
       { key: "institucion_lugar", label: "Institución / lugar" },
       { key: "fecha_grado", label: "Fecha de grado", type: "date" },
       { key: "puntos", label: "Puntos" },
-      { key: "acumulado", label: "Acumulado" },
     ],
     fields: [
       { name: "evento_no", label: "Evento N.°", type: "number" },
+      {
+        name: "tipo_posgrado",
+        label: "Tipo de posgrado",
+        type: "select",
+        options: [
+          "ESPECIALIZACION",
+          "ESPECIALIZACION_CLINICA",
+          "MAESTRIA",
+          "DOCTORADO",
+        ],
+        optionLabels: [
+          "Especialización",
+          "Especialización clínica (Medicina/Odontología)",
+          "Maestría",
+          "Doctorado / PhD",
+        ],
+        required: true,
+      },
       { name: "titulo", label: "Título", required: true },
-      { name: "institucion_lugar", label: "Institución / lugar", required: true },
+      {
+        name: "institucion_lugar",
+        label: "Institución / lugar",
+        required: true,
+      },
       { name: "fecha_inicio", label: "Fecha inicio", type: "date" },
       { name: "fecha_fin", label: "Fecha fin", type: "date" },
       { name: "fecha_grado", label: "Fecha de grado", type: "date" },
-      { name: "puntos", label: "Puntos", type: "number" },
-      { name: "acumulado", label: "Acumulado", type: "number" },
     ],
   },
   {
     key: "categoria",
     label: "Categoría",
     idPrefix: "cat",
+    accumulatedKey: "puntos",
     columns: [
       { key: "inclusion_no", label: "Inclusión N.°" },
       { key: "fecha", label: "Fecha", type: "date" },
@@ -163,31 +249,56 @@ const FACTORES = [
         label: "Categoría",
         type: "select",
         options: ["A", "B", "C", "D"],
+        optionLabels: [
+          "A — Auxiliar (37 pts)",
+          "B — Asistente (58 pts)",
+          "C — Asociado (74 pts)",
+          "D — Titular (96 pts)",
+        ],
         required: true,
       },
-      { name: "puntos", label: "Puntos", type: "number" },
     ],
   },
   {
     key: "exp_tiempo_parcial",
     label: "Experiencia calificada — Tiempo parcial",
     idPrefix: "exp_tp",
+    accumulatedKey: ["total_acumulado", "total_con_tope"],
     columns: [
       { key: "inclusion_no", label: "Inclusión N.°" },
+      { key: "tipo_experiencia", label: "Tipo" },
       { key: "cargo", label: "Cargo" },
       { key: "institucion_lugar", label: "Institución / lugar" },
       { key: "fecha_inicio", label: "Fecha inicio", type: "date" },
       { key: "fecha_fin", label: "Fecha fin", type: "date" },
-      { key: "codigo_dedicacion", label: "Código dedicación" },
+      { key: "codigo_dedicacion", label: "Cod. dedicación" },
       { key: "anios_o_meses", label: "Años o meses" },
+      { key: "puntos_anio", label: "Puntos por año" },
       { key: "puntos", label: "Puntos" },
       { key: "total_acumulado", label: "Total acumulado" },
       { key: "total_con_tope", label: "Total con tope" },
     ],
     fields: [
       { name: "inclusion_no", label: "Inclusión N.°", type: "number" },
+      {
+        name: "tipo_experiencia",
+        label: "Tipo de experiencia",
+        type: "select",
+        options: ["INVESTIGACION", "DOCENCIA", "DIRECCION", "OTRA_PROFESIONAL"],
+        optionLabels: [
+          "Investigación (hasta 6 pts/año)",
+          "Docencia universitaria (hasta 4 pts/año)",
+          "Cargo de dirección académica (hasta 4 pts/año)",
+          "Otra experiencia profesional (hasta 3 pts/año)",
+        ],
+        required: true,
+      },
       { name: "cargo", label: "Cargo", required: true },
-      { name: "institucion_lugar", label: "Institución / lugar", required: true },
+      {
+        name: "institucion_lugar",
+        label: "Institución / lugar",
+        required: true,
+      },
       { name: "fecha_inicio", label: "Fecha inicio", type: "date" },
       { name: "fecha_fin", label: "Fecha fin", type: "date" },
       {
@@ -195,54 +306,52 @@ const FACTORES = [
         label: "Código dedicación",
         type: "select",
         options: ["1", "2"],
+        optionLabels: ["1 — Tiempo completo", "2 — Medio tiempo"],
       },
-      { name: "anios_o_meses", label: "Años o meses (ej. 6M)" },
-      { name: "puntos", label: "Puntos", type: "number" },
-      { name: "total_acumulado", label: "Total acumulado", type: "number" },
-      { name: "total_con_tope", label: "Total con tope", type: "number" },
     ],
   },
   {
     key: "exp_hora_catedra",
     label: "Experiencia calificada — Hora cátedra",
     idPrefix: "exp_hc",
+    accumulatedKey: ["total_acumulado", "total_con_tope"],
     columns: [
       { key: "evento_no", label: "Evento N.°" },
-      { key: "cargo", label: "Cargo" },
       { key: "institucion_lugar", label: "Institución / lugar" },
       { key: "fecha_inicio", label: "Fecha inicio", type: "date" },
       { key: "fecha_fin", label: "Fecha fin", type: "date" },
-      { key: "puntos_h_s_s", label: "Puntos H.S.S." },
-      { key: "total_h_s_s_periodo", label: "Total H.S.S. periodo" },
+      { key: "puntos_h_s_s", label: "Pts H.S.S." },
+      { key: "total_h_s_s_periodo", label: "Total H.S.S." },
       { key: "puntos", label: "Puntos" },
       { key: "total_acumulado", label: "Total acumulado" },
       { key: "total_con_tope", label: "Total con tope" },
     ],
     fields: [
       { name: "evento_no", label: "Evento N.°", type: "number" },
-      { name: "cargo", label: "Cargo", required: true },
-      { name: "institucion_lugar", label: "Institución / lugar", required: true },
+      {
+        name: "institucion_lugar",
+        label: "Institución / lugar",
+        required: true,
+      },
       { name: "fecha_inicio", label: "Fecha inicio", type: "date" },
       { name: "fecha_fin", label: "Fecha fin", type: "date" },
-      { name: "puntos_h_s_s", label: "Puntos H.S.S.", type: "number" },
-      { name: "total_h_s_s_periodo", label: "Total H.S.S. periodo", type: "number" },
-      { name: "puntos", label: "Puntos", type: "number" },
-      { name: "total_acumulado", label: "Total acumulado", type: "number" },
-      { name: "total_con_tope", label: "Total con tope", type: "number" },
     ],
   },
   {
     key: "productividad",
     label: "Productividad académica",
     idPrefix: "prod",
+    accumulatedKey: "puntaje_acumulado",
     columns: [
       { key: "inclusion_no", label: "Inclusión N.°" },
       { key: "trabajo_no", label: "Trabajo N.°" },
       { key: "titulo", label: "Título" },
-      { key: "publicacion_detalle", label: "Detalle de publicación" },
+      { key: "publicacion_detalle", label: "Detalle publicación" },
       { key: "clase", label: "Clase" },
-      { key: "tipo_texto", label: "Tipo de texto" },
+      { key: "tipo_texto", label: "Tipo texto" },
       { key: "articulo_revista", label: "Artículo / revista" },
+      { key: "numero_autores", label: "N.° autores" },
+      { key: "libro", label: "Libro" },
       { key: "puntaje_acumulado", label: "Puntaje acumulado" },
     ],
     fields: [
@@ -250,27 +359,41 @@ const FACTORES = [
       { name: "trabajo_no", label: "Trabajo N.°", type: "number" },
       { name: "titulo", label: "Título", required: true },
       { name: "publicacion_detalle", label: "Detalle de publicación" },
-      { name: "clase", label: "Clase" },
+      { name: "clase", label: "Clase (ej. 1, 2, 3)" },
       {
         name: "tipo_texto",
         label: "Tipo de texto",
         type: "select",
         options: ["L", "AL", "Ar", "T"],
+        optionLabels: [
+          "L — Libro",
+          "AL — Artículo de libro",
+          "Ar — Artículo de revista",
+          "T — Traducción",
+        ],
       },
-      { name: "articulo_revista", label: "Artículo / revista" },
-      { name: "puntaje_acumulado", label: "Puntaje acumulado", type: "number" },
+      { name: "articulo_revista", label: "Artículo / revista (ej. A1, B)" },
+      {
+        name: "numero_autores",
+        label: "N.° de autores",
+        type: "number",
+        required: true,
+      },
+      { name: "libro", label: "Libro", type: "number" },
     ],
   },
   {
     key: "premios_patentes",
     label: "Premios y patentes",
     idPrefix: "pre",
+    accumulatedKey: "puntaje_acumulado",
     columns: [
       { key: "inclusion_no", label: "Inclusión N.°" },
       { key: "tipo", label: "Tipo" },
-      { key: "titulo", label: "Título" },
-      { key: "institucion_lugar", label: "Institución / lugar" },
+      { key: "premio_no", label: "Premio N.°" },
+      { key: "descripcion", label: "Descripción" },
       { key: "fecha", label: "Fecha", type: "date" },
+      { key: "puntaje_parcial", label: "Puntaje parcial" },
       { key: "puntaje_acumulado", label: "Puntaje acumulado" },
     ],
     fields: [
@@ -280,26 +403,27 @@ const FACTORES = [
         label: "Tipo",
         type: "select",
         options: ["PREMIO", "PATENTE"],
+        optionLabels: ["Premio (hasta 15 pts)", "Patente (hasta 25 pts)"],
         required: true,
       },
-      { name: "titulo", label: "Título", required: true },
-      { name: "institucion_lugar", label: "Institución / lugar" },
+      { name: "premio_no", label: "Premio N.°", type: "number" },
+      { name: "descripcion", label: "Descripción", required: true },
       { name: "fecha", label: "Fecha", type: "date" },
-      { name: "puntaje_acumulado", label: "Puntaje acumulado", type: "number" },
     ],
   },
   {
     key: "docencia",
     label: "Docencia destacada",
     idPrefix: "doc",
+    accumulatedKey: "acumulado_puntos",
     columns: [
       { key: "evento_no", label: "Evento N.°" },
       { key: "asignatura", label: "Asignatura" },
       { key: "anio", label: "Año" },
       { key: "semestre", label: "Semestre" },
-      { key: "fecha_solicitud", label: "Fecha de solicitud", type: "date" },
-      { key: "puntos_evento", label: "Puntos del evento" },
-      { key: "acumulado_puntos", label: "Acumulado de puntos" },
+      { key: "fecha_solicitud", label: "Fecha solicitud", type: "date" },
+      { key: "puntos_evento", label: "Puntos evento" },
+      { key: "acumulado_puntos", label: "Acumulado" },
     ],
     fields: [
       { name: "evento_no", label: "Evento N.°", type: "number" },
@@ -307,22 +431,21 @@ const FACTORES = [
       { name: "anio", label: "Año", type: "number", required: true },
       { name: "semestre", label: "Semestre", type: "number", required: true },
       { name: "fecha_solicitud", label: "Fecha de solicitud", type: "date" },
-      { name: "puntos_evento", label: "Puntos del evento", type: "number" },
-      { name: "acumulado_puntos", label: "Acumulado de puntos", type: "number" },
     ],
   },
   {
     key: "extension",
     label: "Extensión destacada",
     idPrefix: "ext",
+    accumulatedKey: "acumulado_puntos",
     columns: [
       { key: "evento_no", label: "Evento N.°" },
       { key: "actividad", label: "Actividad" },
       { key: "anio", label: "Año" },
       { key: "semestre", label: "Semestre" },
-      { key: "fecha_solicitud", label: "Fecha de solicitud", type: "date" },
-      { key: "puntos_evento", label: "Puntos del evento" },
-      { key: "acumulado_puntos", label: "Acumulado de puntos" },
+      { key: "fecha_solicitud", label: "Fecha solicitud", type: "date" },
+      { key: "puntos_evento", label: "Puntos evento" },
+      { key: "acumulado_puntos", label: "Acumulado" },
     ],
     fields: [
       { name: "evento_no", label: "Evento N.°", type: "number" },
@@ -330,8 +453,6 @@ const FACTORES = [
       { name: "anio", label: "Año", type: "number", required: true },
       { name: "semestre", label: "Semestre", type: "number", required: true },
       { name: "fecha_solicitud", label: "Fecha de solicitud", type: "date" },
-      { name: "puntos_evento", label: "Puntos del evento", type: "number" },
-      { name: "acumulado_puntos", label: "Acumulado de puntos", type: "number" },
     ],
   },
 ];
@@ -339,6 +460,8 @@ const FACTORES = [
 const getItems = (credenciales, factorKey) => {
   if (!credenciales) return [];
   switch (factorKey) {
+    case "eventos_credenciales":
+      return credenciales.eventos_credenciales || [];
     case "titulos_pregrado":
       return credenciales.titulos_universitarios?.pregrado || [];
     case "titulos_posgrado":
@@ -365,6 +488,8 @@ const getItems = (credenciales, factorKey) => {
 const buildPayloadForFactor = (credenciales, factorKey, items) => {
   const current = credenciales || emptyCredenciales(credenciales?.profesor_id);
   switch (factorKey) {
+    case "eventos_credenciales":
+      return { eventos_credenciales: items };
     case "titulos_pregrado":
       return {
         titulos_universitarios: {
@@ -414,7 +539,9 @@ const defaultFormForFactor = (factor) =>
 const itemToForm = (factor, item) => {
   const form = defaultFormForFactor(factor);
   factor.fields.forEach((field) => {
-    const value = item[field.name];
+    const value = field.path
+      ? field.path.reduce((current, key) => current?.[key], item)
+      : item[field.name];
     if (field.type === "date") {
       form[field.name] = toDateInput(value);
     } else if (value === null || value === undefined) {
@@ -430,6 +557,21 @@ const formToItem = (factor, form, existingId) => {
   const item = { id: existingId || newItemId(factor.idPrefix) };
   factor.fields.forEach((field) => {
     const raw = form[field.name];
+    if (field.path) {
+      let target = item;
+      field.path.slice(0, -1).forEach((key) => {
+        target[key] ||= {};
+        target = target[key];
+      });
+      const key = field.path[field.path.length - 1];
+      target[key] =
+        field.type === "date"
+          ? toIsoDate(raw)
+          : field.type === "number"
+            ? toNumber(raw)
+            : raw || undefined;
+      return;
+    }
     if (field.type === "date") {
       item[field.name] = toIsoDate(raw);
     } else if (field.type === "number") {
@@ -446,7 +588,28 @@ const formatCell = (column, item) => {
   const value = item[column.key];
   if (value === null || value === undefined || value === "") return "—";
   if (column.type === "date") return toDateInput(value) || "—";
+  if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+};
+
+const formatPts = (value) => {
+  if (value === null || value === undefined) return null;
+  const n = Number(value);
+  if (Number.isNaN(n)) return null;
+  return `${n % 1 === 0 ? n : n.toFixed(2)} pts`;
+};
+
+const getFactorAccumulatedPoints = (factor, items) => {
+  if (!factor.accumulatedKey || items.length === 0) return null;
+
+  // Each backend record contains the accumulated total up to that record.
+  const lastItem = items[items.length - 1];
+  const keys = Array.isArray(factor.accumulatedKey)
+    ? factor.accumulatedKey
+    : [factor.accumulatedKey];
+  return keys
+    .map((key) => lastItem?.[key])
+    .find((value) => value !== null && value !== undefined);
 };
 
 const CredencialesProfesor = () => {
@@ -467,7 +630,9 @@ const CredencialesProfesor = () => {
   const [saving, setSaving] = useState(false);
 
   const selectedFactor = useMemo(
-    () => FACTORES.find((factor) => factor.key === selectedFactorKey) || FACTORES[0],
+    () =>
+      FACTORES.find((factor) => factor.key === selectedFactorKey) ||
+      FACTORES[0],
     [selectedFactorKey],
   );
 
@@ -520,7 +685,8 @@ const CredencialesProfesor = () => {
   };
 
   const handleOpenCreate = (factorKey = FACTORES[0].key) => {
-    const factor = FACTORES.find((item) => item.key === factorKey) || FACTORES[0];
+    const factor =
+      FACTORES.find((item) => item.key === factorKey) || FACTORES[0];
     setSelectedFactorKey(factor.key);
     setEditingItem(null);
     setEditingIndex(null);
@@ -530,7 +696,8 @@ const CredencialesProfesor = () => {
   };
 
   const handleOpenEdit = (factorKey, item, index) => {
-    const factor = FACTORES.find((entry) => entry.key === factorKey) || FACTORES[0];
+    const factor =
+      FACTORES.find((entry) => entry.key === factorKey) || FACTORES[0];
     setSelectedFactorKey(factor.key);
     setEditingItem(item);
     setEditingIndex(index);
@@ -597,7 +764,8 @@ const CredencialesProfesor = () => {
     } catch (err) {
       console.error(err);
       setFormError(
-        err.response?.data?.message || "Error al guardar el registro de credenciales.",
+        err.response?.data?.message ||
+          "Error al guardar el registro de credenciales.",
       );
     } finally {
       setSaving(false);
@@ -620,10 +788,13 @@ const CredencialesProfesor = () => {
     } catch (err) {
       console.error(err);
       setError(
-        err.response?.data?.message || "Error al eliminar el registro de credenciales.",
+        err.response?.data?.message ||
+          "Error al eliminar el registro de credenciales.",
       );
     }
   };
+
+  const resumen = credenciales?.resumen_puntos;
 
   return (
     <Box>
@@ -631,9 +802,13 @@ const CredencialesProfesor = () => {
         <IconButton onClick={() => navigate("/profesores")} color="primary">
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h4" sx={{ fontWeight: "bold", color: "#37474f", flexGrow: 1 }}>
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: "bold", color: "#37474f", flexGrow: 1 }}
+        >
           Credenciales del Profesor
         </Typography>
+
         <Button
           variant="contained"
           color="success"
@@ -674,21 +849,61 @@ const CredencialesProfesor = () => {
         <Stack spacing={2}>
           {!credenciales && (
             <Alert severity="info">
-              Este profesor aún no tiene hoja de credenciales. Al agregar el primer
-              registro se creará automáticamente.
+              Este profesor aún no tiene hoja de credenciales. Al agregar el
+              primer registro se creará automáticamente.
             </Alert>
           )}
 
           {FACTORES.map((factor) => {
             const items = getItems(credenciales, factor.key);
+            const ptsValue = getFactorAccumulatedPoints(factor, items);
+            const ptsLabel = formatPts(ptsValue);
+
             return (
               <Accordion key={factor.key} defaultExpanded={items.length > 0}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Stack direction="row" alignItems="center" spacing={2} sx={{ width: "100%", pr: 2 }}>
-                    <Typography sx={{ fontWeight: 600, color: "#37474f", flexGrow: 1 }}>
-                      {factor.label}+{}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    spacing={2}
+                    sx={{ width: "100%", pr: 2 }}
+                  >
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1.25}
+                      sx={{ minWidth: 0, flex: 1 }}
+                    >
+                      <Typography
+                        sx={{
+                          fontWeight: 600,
+                          color: "#37474f",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {factor.label}
+                      </Typography>
+                      {ptsLabel && (
+                        <Chip
+                          label={ptsLabel}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                    </Stack>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ flexShrink: 0 }}
+                    >
                       {items.length} registro{items.length === 1 ? "" : "s"}
                     </Typography>
                     <Button
@@ -698,22 +913,36 @@ const CredencialesProfesor = () => {
                         e.stopPropagation();
                         handleOpenCreate(factor.key);
                       }}
+                      sx={{ flexShrink: 0 }}
                     >
                       Agregar
                     </Button>
                   </Stack>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 1 }}>
+                  <TableContainer
+                    component={Paper}
+                    sx={{ borderRadius: 2, boxShadow: 1 }}
+                  >
                     <Table size="small">
                       <TableHead sx={{ bgcolor: "#f5f5f5" }}>
                         <TableRow>
                           {factor.columns.map((column) => (
-                            <TableCell key={column.key} sx={{ fontWeight: "bold", color: "#37474f" }}>
+                            <TableCell
+                              key={column.key}
+                              sx={{ fontWeight: "bold", color: "#37474f" }}
+                            >
                               {column.label}
                             </TableCell>
                           ))}
-                          <TableCell align="center" sx={{ fontWeight: "bold", color: "#37474f", width: 120 }}>
+                          <TableCell
+                            align="center"
+                            sx={{
+                              fontWeight: "bold",
+                              color: "#37474f",
+                              width: 120,
+                            }}
+                          >
                             Acciones
                           </TableCell>
                         </TableRow>
@@ -721,23 +950,38 @@ const CredencialesProfesor = () => {
                       <TableBody>
                         {items.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={factor.columns.length + 1} align="center" sx={{ py: 3, color: "#9e9e9e" }}>
+                            <TableCell
+                              colSpan={factor.columns.length + 1}
+                              align="center"
+                              sx={{ py: 3, color: "#9e9e9e" }}
+                            >
                               Sin registros en este factor.
                             </TableCell>
                           </TableRow>
                         ) : (
                           items.map((item, index) => (
-                            <TableRow key={item.id || `${factor.key}-${index}`} hover>
+                            <TableRow
+                              key={item.id || `${factor.key}-${index}`}
+                              hover
+                            >
                               {factor.columns.map((column) => (
-                                <TableCell key={column.key}>{formatCell(column, item)}</TableCell>
+                                <TableCell key={column.key}>
+                                  {formatCell(column, item)}
+                                </TableCell>
                               ))}
                               <TableCell align="center">
-                                <Stack direction="row" spacing={1} justifyContent="center">
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  justifyContent="center"
+                                >
                                   <IconButton
                                     size="small"
                                     color="primary"
                                     title="Editar registro"
-                                    onClick={() => handleOpenEdit(factor.key, item, index)}
+                                    onClick={() =>
+                                      handleOpenEdit(factor.key, item, index)
+                                    }
                                   >
                                     <EditIcon fontSize="small" />
                                   </IconButton>
@@ -745,7 +989,9 @@ const CredencialesProfesor = () => {
                                     size="small"
                                     color="error"
                                     title="Eliminar registro"
-                                    onClick={() => handleDeleteItem(factor.key, item, index)}
+                                    onClick={() =>
+                                      handleDeleteItem(factor.key, item, index)
+                                    }
                                   >
                                     <DeleteIcon fontSize="small" />
                                   </IconButton>
@@ -764,7 +1010,12 @@ const CredencialesProfesor = () => {
         </Stack>
       )}
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth maxWidth="sm">
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        fullWidth
+        maxWidth="sm"
+      >
         <form onSubmit={handleSubmit}>
           <DialogTitle sx={{ fontWeight: "bold", color: "#37474f" }}>
             {editingItem ? "Editar registro" : "Nuevo registro de credenciales"}
@@ -776,62 +1027,99 @@ const CredencialesProfesor = () => {
               </Alert>
             )}
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <FormControl fullWidth required disabled={Boolean(editingItem)}>
-                <InputLabel id="factor-select-label">Factor</InputLabel>
-                <Select
-                  labelId="factor-select-label"
-                  value={selectedFactorKey}
-                  label="Factor"
-                  onChange={(e) => handleFactorChange(e.target.value)}
+              <Box>
+                <InputLabel
+                  sx={{ fontWeight: "bold", color: "#37474f", mb: 1 }}
                 >
-                  {FACTORES.map((factor) => (
-                    <MenuItem key={factor.key} value={factor.key}>
-                      {factor.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  Factor
+                </InputLabel>
+                <FormControl fullWidth required disabled={Boolean(editingItem)}>
+                  <Select
+                    value={selectedFactorKey}
+                    onChange={(e) => handleFactorChange(e.target.value)}
+                  >
+                    {FACTORES.map((factor) => (
+                      <MenuItem key={factor.key} value={factor.key}>
+                        {factor.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
 
               {selectedFactor.fields.map((field) =>
                 field.type === "select" ? (
-                  <FormControl key={field.name} fullWidth required={field.required}>
-                    <InputLabel id={`${field.name}-label`}>{field.label}</InputLabel>
-                    <Select
-                      labelId={`${field.name}-label`}
-                      name={field.name}
-                      value={formData[field.name] || ""}
-                      label={field.label}
-                      onChange={handleFormChange}
+                  <Box key={field.name}>
+                    <InputLabel
+                      sx={{ fontWeight: "bold", color: "#37474f", mb: 1 }}
                     >
-                      {(field.options || []).map((option) => (
-                        <MenuItem key={option} value={option}>
-                          {option}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                      {field.label}
+                      {field.required ? " *" : ""}
+                    </InputLabel>
+                    <FormControl fullWidth required={field.required}>
+                      <Select
+                        name={field.name}
+                        value={formData[field.name] || ""}
+                        onChange={handleFormChange}
+                      >
+                        {(field.options || []).map((option, i) => (
+                          <MenuItem key={option} value={option}>
+                            {field.optionLabels?.[i] ?? option}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
                 ) : (
-                  <TextField
-                    key={field.name}
-                    name={field.name}
-                    label={field.label}
-                    type={field.type === "date" ? "date" : field.type === "number" ? "number" : "text"}
-                    value={formData[field.name] || ""}
-                    onChange={handleFormChange}
-                    fullWidth
-                    required={field.required}
-                    InputLabelProps={field.type === "date" ? { shrink: true } : undefined}
-                    inputProps={field.type === "number" ? { step: "any" } : undefined}
-                  />
+                  <Box key={field.name}>
+                    <InputLabel
+                      sx={{ fontWeight: "bold", color: "#37474f", mb: 1 }}
+                    >
+                      {field.label}
+                      {field.required ? " *" : ""}
+                    </InputLabel>
+                    <TextField
+                      name={field.name}
+                      type={
+                        field.type === "date"
+                          ? "date"
+                          : field.type === "number"
+                            ? "number"
+                            : "text"
+                      }
+                      value={formData[field.name] || ""}
+                      onChange={handleFormChange}
+                      fullWidth
+                      required={field.required}
+                      inputProps={
+                        field.type === "number"
+                          ? {
+                              step: "any",
+                              min:
+                                field.name === "numero_autores" ? 1 : undefined,
+                            }
+                          : undefined
+                      }
+                    />
+                  </Box>
                 ),
               )}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>
-            <Button onClick={handleCloseDialog} color="inherit" disabled={saving}>
+            <Button
+              onClick={handleCloseDialog}
+              color="inherit"
+              disabled={saving}
+            >
               Cancelar
             </Button>
-            <Button type="submit" variant="contained" color="success" disabled={saving}>
+            <Button
+              type="submit"
+              variant="contained"
+              color="success"
+              disabled={saving}
+            >
               {editingItem ? "Guardar cambios" : "Agregar"}
             </Button>
           </DialogActions>
