@@ -1,4 +1,3 @@
-
 ### 🏛️ Dependencias
 
 Las dependencias tienen jerarquía: `ESCUELA/OFICINA → DEPARTAMENTO → SECCION`. El campo `padre_id` define el nodo padre; el servidor calcula `ancestros` automáticamente.
@@ -158,6 +157,7 @@ Retorna un profesor por su ID de Firestore.
 **Respuesta `200`:** objeto. **`404`** si no existe.
 
 #### `GET /api/profesores/:id`
+
 Retorna un profesor por su ID de Firestore.
 
 **Respuesta `200`:** objeto. **`404`** si no existe.
@@ -165,6 +165,7 @@ Retorna un profesor por su ID de Firestore.
 > Esta respuesta incluye `docente_periodos`, que es un array con los periodos docentes asociados al profesor.
 
 **Ejemplo de respuesta `200`:**
+
 ```json
 {
   "id": "prof_123",
@@ -192,7 +193,6 @@ Retorna un profesor por su ID de Firestore.
   ]
 }
 ```
-
 
 ---
 
@@ -227,15 +227,14 @@ Elimina un profesor.
 
 ---
 
-
 ---
 
 ### 📅 Periodos
 
 La colección `periodos` se usa como catálogo oficial para los periodos académicos. El `id` del documento es el mismo valor del periodo, por ejemplo `2026-1`.
 
-
 **Respuesta `409`:**
+
 ```json
 { "message": "Ya existe ese periodo" }
 ```
@@ -243,9 +242,11 @@ La colección `periodos` se usa como catálogo oficial para los periodos académ
 ---
 
 #### `GET /api/periodos`
+
 Retorna todos los periodos registrados.
 
 **Respuesta `200`:**
+
 ```json
 [
   {
@@ -256,15 +257,16 @@ Retorna todos los periodos registrados.
 ]
 ```
 
-
 ### 👩‍🏫 Docente Periodos
 
 Esta colección representa la relación entre un profesor y un periodo académico.
 
 #### `POST /api/docente-periodos`
+
 Crea un registro de docente por periodo.
 
 **Body:**
+
 ```json
 {
   "profesor_id": "prof_123",
@@ -278,6 +280,7 @@ Crea un registro de docente por periodo.
 ```
 
 **Campos obligatorios:**
+
 - `profesor_id`
 - `periodo_id`
 - `tipo_vinculacion`
@@ -285,10 +288,12 @@ Crea un registro de docente por periodo.
 - `cargo`
 
 **Campos opcionales:**
+
 - `estado` tiene default `ACTIVO`
 - `nivel`
 
 **Respuesta `201`:**
+
 ```json
 {
   "id": "prof_123_2026-1",
@@ -307,6 +312,7 @@ Crea un registro de docente por periodo.
   }
 }
 ```
+
 Tipos de vinculacion disponibles: 'NOMBRADO', 'CONTRATISTA', 'AD-HONOREM', 'ASISTENTE DOC'
 
 Tipos de dedicacion disponibles: 'COMPLETO', 'PARCIAL', 'H. CATEDRA'
@@ -316,6 +322,7 @@ Tipos de cargo disponibles: 'AUXILIAR', 'ASISTENTE', 'ASOCIADO', 'TITULAR', 'SIN
 Tipos de nivel disponibles: 'PREGRADO', 'MAESTRIA', 'DOCTORADO', 'ESPECIALIZACION']
 
 **Posibles errores:**
+
 - `400` si el profesor no existe
 - `400` si el periodo no existe
 - `409` si ya existe un registro para ese profesor y periodo
@@ -323,9 +330,11 @@ Tipos de nivel disponibles: 'PREGRADO', 'MAESTRIA', 'DOCTORADO', 'ESPECIALIZACIO
 ---
 
 #### `GET /api/docente-periodos`
+
 Retorna todos los registros de docente-periodo.
 
 **Respuesta `200`:**
+
 ```json
 [
   {
@@ -348,6 +357,7 @@ Retorna todos los registros de docente-periodo.
 ---
 
 #### `GET /api/docente-periodos/:id`
+
 Retorna un registro por su ID compuesto.
 
 **Ejemplo:** `GET /api/docente-periodos/prof_123_2026-1`
@@ -357,13 +367,16 @@ Retorna un registro por su ID compuesto.
 ---
 
 #### `PUT /api/docente-periodos/:id`
+
 Actualiza parcialmente un registro.
 
 **No se permite actualizar:**
+
 - `profesor_id`
 - `periodo_id`
 
 **Body (ejemplo):**
+
 ```json
 {
   "estado": "INACTIVO",
@@ -374,20 +387,24 @@ Actualiza parcialmente un registro.
 **Respuesta `200`:** objeto actualizado con el periodo expandido.
 
 **Respuesta `400`:**
+
 ```json
-{ "message": "No se permite actualizar profesor_id o periodo_id. Elimina y crea un nuevo registro." }
+{
+  "message": "No se permite actualizar profesor_id o periodo_id. Elimina y crea un nuevo registro."
+}
 ```
 
 ---
 
 #### `DELETE /api/docente-periodos/:id`
+
 Elimina un registro de docente-periodo.
 
 **Respuesta `200`:**
+
 ```json
 { "message": "DocentePeriodo eliminado correctamente" }
 ```
-
 
 ## Respuestas de error comunes
 
@@ -428,9 +445,11 @@ El ID del documento se construye automáticamente como:
 ```
 
 #### `POST /api/asignaciones`
+
 Crea una asignación para un profesor en un periodo docente.
 
 **Body:**
+
 ```json
 {
   "profesor_id": "prof_123",
@@ -445,6 +464,7 @@ Crea una asignación para un profesor en un periodo docente.
 ```
 
 **Campos obligatorios:**
+
 - `profesor_id`
 - `docente_periodo_id`
 - `tipo_actividad`
@@ -455,6 +475,7 @@ Crea una asignación para un profesor en un periodo docente.
 - `categoria`
 
 **Valores válidos para `tipo_actividad`:**
+
 - `Administrativas`
 - `Comisión`
 - `Complementarias`
@@ -465,6 +486,7 @@ Crea una asignación para un profesor en un periodo docente.
 - `Sin actividades`
 
 **Valores válidos para `actividad`:**
+
 - `ACTIVIDADES ADMINISTRATIVAS`
 - `ACTIVIDADES COMPLEMENTARIAS`
 - `ACTIVIDADES DE DOCENCIA`
@@ -475,6 +497,7 @@ Crea una asignación para un profesor en un periodo docente.
 - `SIN ACTIVIDADES`
 
 **Respuesta `201`:**
+
 ```json
 {
   "id": "prof_123_prof_123_2026-1",
@@ -496,6 +519,7 @@ Crea una asignación para un profesor en un periodo docente.
 ```
 
 **Posibles errores:**
+
 - `400` si `profesor_id` no existe
 - `400` si `docente_periodo_id` no existe
 - `409` si ya existe una asignación para ese profesor y periodo
@@ -503,11 +527,13 @@ Crea una asignación para un profesor en un periodo docente.
 ---
 
 #### `GET /api/asignaciones/profesor/:profesorId`
+
 Retorna todas las asignaciones asociadas a un profesor específico.
 
 **Ejemplo:** `GET /api/asignaciones/profesor/prof_123`
 
 **Respuesta `200`:**
+
 ```json
 [
   {
@@ -532,7 +558,6 @@ Si el profesor no tiene asignaciones, la respuesta es un arreglo vacío: `[]`.
 
 ---
 
-
 ---
 
 ### 🎓 Credenciales
@@ -542,9 +567,11 @@ La colección `credenciales` guarda la hoja de vida académica del docente (even
 Los arrays internos (`eventos_credenciales`, títulos, experiencia, etc.) no son colecciones aparte: viajan embebidos en ese documento.
 
 #### `POST /api/credenciales`
+
 Crea las credenciales de un profesor. El `profesor_id` debe existir en `profesores` y no puede repetirse.
 
 **Body (mínimo):**
+
 ```json
 {
   "profesor_id": "prof_123"
@@ -554,6 +581,7 @@ Crea las credenciales de un profesor. El `profesor_id` debe existir en `profesor
 Los arrays vacíos y objetos por defecto los completa el servidor si no se envían.
 
 **Body (completo, ejemplo):**
+
 ```json
 {
   "profesor_id": "prof_123",
@@ -594,10 +622,9 @@ Los arrays vacíos y objetos por defecto los completa el servidor si no se enví
         "fecha_inicio": "2010-01-01T00:00:00Z",
         "fecha_fin": "2014-04-23T00:00:00Z",
         "titulo": "Nutricionista - Dietista",
+        "tipo_pregrado": "OTROS_PROFESIONALES",
         "institucion_lugar": "Universidad Nacional de Colombia, Bogotá",
-        "fecha_grado": "2014-04-23T00:00:00Z",
-        "puntos": 178.0,
-        "acumulado": 178.0
+        "fecha_grado": "2014-04-23T00:00:00Z"
       }
     ],
     "posgrado": [
@@ -607,10 +634,9 @@ Los arrays vacíos y objetos por defecto los completa el servidor si no se enví
         "fecha_inicio": "2018-01-01T00:00:00Z",
         "fecha_fin": "2020-07-17T00:00:00Z",
         "titulo": "Magíster en Políticas Públicas",
+        "tipo_posgrado": "MAESTRIA",
         "institucion_lugar": "Universidad del Valle, Cali",
-        "fecha_grado": "2020-07-17T00:00:00Z",
-        "puntos": 40.0,
-        "acumulado": 40.0
+        "fecha_grado": "2020-07-17T00:00:00Z"
       }
     ]
   },
@@ -618,8 +644,7 @@ Los arrays vacíos y objetos por defecto los completa el servidor si no se enví
     {
       "inclusion_no": "1a.INCLUSION",
       "fecha": "2022-06-30T00:00:00Z",
-      "categoria": "A",
-      "puntos": 37.0
+      "categoria": "A"
     }
   ],
   "experiencia_calificada": {
@@ -630,12 +655,10 @@ Los arrays vacíos y objetos por defecto los completa el servidor si no se enví
         "fecha_inicio": "2019-01-28T00:00:00Z",
         "fecha_fin": "2019-06-12T00:00:00Z",
         "cargo": "Docente - Ocasional",
+        "tipo_experiencia": "DOCENCIA",
         "codigo_dedicacion": "1",
         "institucion_lugar": "Institución Universitaria Escuela Nacional del Deporte",
-        "anios_o_meses": "6M",
-        "puntos": 2.0,
-        "total_acumulado": 2.0,
-        "total_con_tope": 2.0
+        "anios_o_meses": "6M"
       }
     ],
     "hora_catedra": [
@@ -645,12 +668,7 @@ Los arrays vacíos y objetos por defecto los completa el servidor si no se enví
         "fecha_inicio": "2022-01-24T00:00:00Z",
         "fecha_fin": "2022-06-05T00:00:00Z",
         "cargo": "Profesor cátedra en el Departamento de Salud Pública",
-        "institucion_lugar": "Pontificia Universidad Javeriana - Cali",
-        "puntos_h_s_s": 0.167,
-        "total_h_s_s_periodo": 7.58,
-        "puntos": 1.27,
-        "total_acumulado": 1.27,
-        "total_con_tope": 1.27
+        "institucion_lugar": "Pontificia Universidad Javeriana - Cali"
       }
     ]
   },
@@ -660,14 +678,23 @@ Los arrays vacíos y objetos por defecto los completa el servidor si no se enví
       "inclusion_no": 1,
       "trabajo_no": 3,
       "titulo": "Prácticas alimentarias de familias afrodescendientes...",
-      "publicacion_detalle": "Promoc. Salud. 2022; 27 (1): 143-158 - 4 autores",
+      "publicacion_detalle": "Promoc. Salud. 2022; 27 (1): 143-158",
+      "numero_autores": 4,
       "clase": "1",
       "tipo_texto": "Ar",
-      "articulo_revista": "B",
-      "puntaje_acumulado": 4.0
+      "articulo_revista": "B"
     }
   ],
-  "premios_y_patentes": [],
+  "premios_y_patentes": [
+    {
+      "id": "prem_1",
+      "evento_no": 1,
+      "premio_no": 1,
+      "tipo": "PREMIO",
+      "descripcion": "Premio Nacional de Investigación",
+      "fecha": "2024-05-10T00:00:00Z"
+    }
+  ],
   "docencia_destacada": [
     {
       "id": "doc_1",
@@ -675,22 +702,36 @@ Los arrays vacíos y objetos por defecto los completa el servidor si no se enví
       "semestre": 2,
       "anio": 2024,
       "asignatura": "Nutrición y Salud - 402007C",
-      "fecha_solicitud": "2025-03-02T00:00:00Z",
-      "puntos_evento": 3.0,
-      "acumulado_puntos": 5.0
+      "fecha_solicitud": "2025-03-02T00:00:00Z"
     }
   ],
   "extension_destacada": []
 }
 ```
 
-**Campos / valores relevantes:**
+**Campos / valores relevantes (NUEVOS ENUMS PARA CÁLCULO AUTOMÁTICO):**
+
+- `titulos_universitarios.pregrado[].tipo_pregrado`: `MEDICINA_O_MUSICA`, `OTROS_PROFESIONALES`
+- `titulos_universitarios.posgrado[].tipo_posgrado`: `ESPECIALIZACION`, `ESPECIALIZACION_CLINICA`, `MAESTRIA`, `DOCTORADO`
+- `experiencia_calificada.tiempo_parcial[].tipo_experiencia`: `INVESTIGACION`, `DOCENCIA`, `DIRECCION`, `OTRA_PROFESIONAL`
+- `productividad_academica[].tipo_texto`: `L`, `AL`, `Ar`, `T`
+- `productividad_academica[].numero_autores`: Número entero, mínimo 1.
+- `premios_y_patentes[].tipo`: `PREMIO`, `PATENTE`
 - `eventos_credenciales[].clase`: `Inclusión`, `Ascenso`, `Actualización`
 - `historial_categoria[].categoria`: `A`, `B`, `C`, `D`
 - `experiencia_calificada.tiempo_parcial[].codigo_dedicacion`: `1`, `2`
-- `productividad_academica[].tipo_texto`: `L`, `AL`, `Ar`, `T`
+
+`experiencia_calificada.tiempo_parcial[].anios_o_meses` se calcula automáticamente
+en el backend usando `fecha_inicio` y `fecha_fin`. No es necesario enviarlo en el
+body. Si la duración es menor a un año, se devuelve como meses enteros con la
+letra `M` (por ejemplo, `6M`). Si es de un año o más, se devuelve en años con
+un máximo de un decimal y sin letra (por ejemplo, `1.5`).
+
+
+> **Nota importante:** El cliente ya NO necesita enviar los campos `puntos`, `acumulado`, `total_con_tope`, ni `resumen_puntos`. Todos estos campos son calculados automáticamente por el `PuntajeService` del servidor.
 
 **Respuesta `201`:**
+
 ```json
 {
   "id": "prof_123",
@@ -709,12 +750,14 @@ Los arrays vacíos y objetos por defecto los completa el servidor si no se enví
 ```
 
 **Posibles errores:**
+
 - `400` si el profesor no existe
 - `409` si ya existen credenciales para ese profesor
 
 ---
 
 #### `GET /api/credenciales`
+
 Retorna todas las credenciales registradas.
 
 **Respuesta `200`:** array de documentos de credenciales.
@@ -722,20 +765,127 @@ Retorna todas las credenciales registradas.
 ---
 
 #### `GET /api/credenciales/:profesorId`
+
 Retorna las credenciales de un profesor. El parámetro es el **ID del profesor** (mismo `id` del documento en Firestore).
 
 **Ejemplo:** `GET /api/credenciales/prof_123`
 
 **Respuesta `200`:** objeto de credenciales. **`404`** si no existe.
+**Ejemplo:** `GET /api/credenciales/prof_123`
 
+**Respuesta `200`:** objeto de credenciales. **`404`** si no existe.
+
+**Ejemplo de respuesta `200`:**
+
+Los campos calculados por el servidor llegan dentro de cada registro del factor. El
+campo acumulado de cada registro representa el total acumulado hasta ese registro.
+
+```json
+{
+  "titulos_universitarios": {
+    "pregrado": [
+      {
+        "tipo_pregrado": "MEDICINA_O_MUSICA",
+        "puntos": 183,
+        "acumulado": 183
+      }
+    ],
+    "posgrado": [
+      {
+        "tipo_posgrado": "MAESTRIA",
+        "fecha_inicio": "2020-01-01",
+        "fecha_fin": "2022-01-01",
+        "puntos": 40,
+        "acumulado": 40
+      }
+    ]
+  },
+  "historial_categoria": [
+    {
+      "categoria": "B",
+      "puntos": 58
+    }
+  ],
+  "experiencia_calificada": {
+    "tiempo_parcial": [
+      {
+        "tipo_experiencia": "DOCENCIA",
+        "puntos_anio": 4,
+        "puntos": 8,
+        "total_acumulado": 8,
+        "total_con_tope": 8
+      }
+    ],
+    "hora_catedra": [
+      {
+        "total_h_s_s_periodo": 10,
+        "puntos_h_s_s": 1,
+        "puntos": 10,
+        "total_acumulado": 10,
+        "total_con_tope": 10
+      }
+    ]
+  },
+  "productividad_academica": [
+    {
+      "tipo_texto": "L",
+      "numero_autores": 1,
+      "puntaje_acumulado": 20
+    }
+  ],
+  "premios_y_patentes": [
+    {
+      "tipo": "PATENTE",
+      "puntaje_parcial": 25,
+      "puntaje_acumulado": 25
+    }
+  ],
+  "docencia_destacada": [
+    {
+      "puntos_evento": 3,
+      "acumulado_puntos": 3
+    }
+  ],
+  "extension_destacada": [
+    {
+      "puntos_evento": 3,
+      "acumulado_puntos": 3
+    }
+  ],
+  "resumen_puntos": {
+    "titulos_universitarios": 223,
+    "categoria": 58,
+    "experiencia_calificada": 18,
+    "productividad_academica": 26,
+    "puntos_totales": 350
+  }
+}
+```
+
+Para consumirlos en el frontend, las rutas principales son:
+
+- Pregrado: `titulos_universitarios.pregrado[].acumulado`
+- Posgrado: `titulos_universitarios.posgrado[].acumulado`
+- Categoría: `historial_categoria[].puntos`
+- Experiencia tiempo parcial: `experiencia_calificada.tiempo_parcial[].total_acumulado` o `total_con_tope`
+- Hora cátedra: `experiencia_calificada.hora_catedra[].total_acumulado` o `total_con_tope`
+- Productividad: `productividad_academica[].puntaje_acumulado`
+- Premios y patentes: `premios_y_patentes[].puntaje_acumulado`
+- Docencia destacada: `docencia_destacada[].acumulado_puntos`
+- Extensión destacada: `extension_destacada[].acumulado_puntos`
+- Total general: `resumen_puntos.puntos_totales`
+
+---
 ---
 
 #### `PUT /api/credenciales/:profesorId`
+
 Actualiza parcialmente las credenciales. Todos los campos son opcionales, **excepto que no se permite cambiar `profesor_id`**.
 
 Para agregar un título, un evento o un ítem de experiencia, envía el array (o el objeto anidado) completo con el nuevo elemento incluido.
 
 **Body (ejemplo):**
+
 ```json
 {
   "resumen_puntos": {
@@ -765,18 +915,23 @@ Para agregar un título, un evento o un ítem de experiencia, envía el array (o
 **Respuesta `200`:** objeto actualizado con `updatedAt` renovado.
 
 **Respuesta `400`:**
+
 ```json
-{ "message": "No se permite actualizar profesor_id. Elimina y crea un nuevo registro." }
+{
+  "message": "No se permite actualizar profesor_id. Elimina y crea un nuevo registro."
+}
 ```
 
 ---
 
 #### `DELETE /api/credenciales/:profesorId`
+
 Elimina las credenciales del profesor. No elimina al profesor.
 
 **Ejemplo:** `DELETE /api/credenciales/prof_123`
 
 **Respuesta `200`:**
+
 ```json
 { "message": "Credenciales eliminadas correctamente" }
 ```
@@ -784,7 +939,299 @@ Elimina las credenciales del profesor. No elimina al profesor.
 ---
 
 
+## Ejemplo completo de respuesta `200` (todos los campos posibles):
+**Ejemplo completo de respuesta `200` (todos los campos posibles):**
 
+```json
+{
+  "id": "prof_123",
+  "profesor_id": "prof_123",
+  "resumen_puntos": {
+    "titulos_universitarios": 223,
+    "categoria": 58,
+    "experiencia_calificada": 18,
+    "productividad_academica": 26,
+    "puntos_totales": 308.5,
+    "ultimo_evento_numero": 5,
+    "fecha_ultima_actualizacion": "2026-09-01T20:00:00.000Z"
+  },
+  "eventos_credenciales": [
+    {
+      "numero_evento": 1,
+      "clase": "Inclusión",
+      "dedicacion": "A - T.C.",
+      "factores_puntaje": {
+        "titulos_universitarios": { "evento": 218, "tot_acum": 218 },
+        "categoria": { "evento": 37, "tot_acum": 37 },
+        "experiencia_calificada": { "evento": 8, "tot_acum": 8 },
+        "productividad_academica": { "evento": 20, "tot_acum": 20 }
+      },
+      "puntos_del_evento": 283,
+      "total_puntos_acumulado": 283,
+      "soporte": {
+        "acta_ccs": "20",
+        "fecha": "2022-06-30T00:00:00Z",
+        "firma_presidente_url": "https://storage.googleapis.com/.../firma_20.png"
+      }
+    }
+  ],
+  "titulos_universitarios": {
+    "pregrado": [
+      {
+        "id": "tit_1",
+        "evento_no": 1,
+        "fecha_inicio": "2010-01-01T00:00:00Z",
+        "fecha_fin": "2014-04-23T00:00:00Z",
+        "titulo": "Nutricionista - Dietista",
+        "tipo_pregrado": "OTROS_PROFESIONALES",
+        "institucion_lugar": "Universidad Nacional de Colombia, Bogotá",
+        "fecha_grado": "2014-04-23T00:00:00Z",
+        "puntos": 178,
+        "acumulado": 178
+      }
+    ],
+    "posgrado": [
+      {
+        "id": "tit_2",
+        "evento_no": 1,
+        "fecha_inicio": "2018-01-01T00:00:00Z",
+        "fecha_fin": "2020-07-17T00:00:00Z",
+        "titulo": "Magíster en Políticas Públicas",
+        "tipo_posgrado": "MAESTRIA",
+        "institucion_lugar": "Universidad del Valle, Cali",
+        "fecha_grado": "2020-07-17T00:00:00Z",
+        "puntos": 40,
+        "acumulado": 40
+      }
+    ]
+  },
+  "historial_categoria": [
+    {
+      "inclusion_no": "1a.INCLUSION",
+      "fecha": "2022-06-30T00:00:00Z",
+      "categoria": "B",
+      "puntos": 58
+    }
+  ],
+  "experiencia_calificada": {
+    "tiempo_parcial": [
+      {
+        "id": "exp_tp_1",
+        "inclusion_no": 2,
+        "fecha_inicio": "2019-01-28T00:00:00Z",
+        "fecha_fin": "2019-06-12T00:00:00Z",
+        "cargo": "Docente - Ocasional",
+        "tipo_experiencia": "DOCENCIA",
+        "codigo_dedicacion": "1",
+        "institucion_lugar": "Institución Universitaria Escuela Nacional del Deporte",
+        "anios_o_meses": "4M",
+        "puntos_anio": 4,
+        "puntos": 1.5,
+        "total_acumulado": 1.5,
+        "total_con_tope": 1.5
+      }
+    ],
+    "hora_catedra": [
+      {
+        "id": "exp_hc_1",
+        "evento_no": 1,
+        "fecha_inicio": "2022-01-24T00:00:00Z",
+        "fecha_fin": "2022-06-05T00:00:00Z",
+        "institucion_lugar": "Pontificia Universidad Javeriana - Cali",
+        "puntos_h_s_s": 1,
+        "total_h_s_s_periodo": 10,
+        "puntos": 10,
+        "total_acumulado": 10,
+        "total_con_tope": 10
+      }
+    ]
+  },
+  "productividad_academica": [
+    {
+      "id": "prod_1",
+      "inclusion_no": 1,
+      "trabajo_no": 3,
+      "titulo": "Prácticas alimentarias de familias afrodescendientes",
+      "publicacion_detalle": "Promoc. Salud. 2022; 27 (1): 143-158",
+      "numero_autores": 1,
+      "clase": "1",
+      "tipo_texto": "Ar",
+      "articulo_revista": "B",
+      "libro": 0,
+      "puntaje_acumulado": 15
+    }
+  ],
+  "premios_y_patentes": [
+    {
+      "id": "prem_1",
+      "evento_no": 1,
+      "premio_no": 1,
+      "tipo": "PREMIO",
+      "descripcion": "Premio Nacional de Investigación",
+      "fecha": "2024-05-10T00:00:00Z",
+      "puntaje_parcial": 15,
+      "puntaje_acumulado": 15
+    }
+  ],
+  "docencia_destacada": [
+    {
+      "id": "doc_1",
+      "evento_no": 5,
+      "semestre": 2,
+      "anio": 2024,
+      "asignatura": "Nutrición y Salud - 402007C",
+      "fecha_solicitud": "2025-03-02T00:00:00Z",
+      "puntos_evento": 3,
+      "acumulado_puntos": 3
+    }
+  ],
+  "extension_destacada": [
+    {
+      "id": "ext_1",
+      "evento_no": 5,
+      "semestre": 2,
+      "anio": 2024,
+      "actividad": "Jornada de promoción de la salud",
+      "fecha_solicitud": "2025-03-02T00:00:00Z",
+      "puntos_evento": 3,
+      "acumulado_puntos": 3
+    }
+  ],
+  "createdAt": "2026-09-01T20:00:00.000Z",
+  "updatedAt": "2026-09-01T20:00:00.000Z"
+}
+## Respuestas de error comunes
+
+| Código | Causa                                                                  |
+| ------ | ---------------------------------------------------------------------- |
+| `400`  | Validación fallida (Zod) — la respuesta incluye `errors[]` con detalle |
+| `400`  | IDs de dependencia referenciados no existen en Firestore               |
+| `400`  | No se enviaron campos para actualizar                                  |
+| `401`  | Token ausente, expirado o inválido                                     |
+| `403`  | Usuario no en lista blanca o inactivo                                  |
+| `404`  | Recurso no encontrado                                                  |
+| `409`  | Conflicto de integridad referencial                                    |
+| `500`  | Error interno del servidor                                             |
+
+**Formato de error de validación (`400`):**
+
+```json
+{
+  "message": "Error de validacion",
+  "errors": [
+    {
+      "path": ["email"],
+      "message": "Debe ser un correo valido"
+    }
+  ]
+}
+```
+
+---
+
+## Reglas de puntaje
+
+1.1. PREGRADO
+Por titulos universitarios en:
+a. Medicina o composición musical,183 ptos.
+b. Demás profesionales, 178 ptos.
+
+1.2 POSTGRADO
+(máximo puntaje acumulable 140 ptos)
+
+a. Por titulos de especialización entre 1 y 2
+años............................ Hasta 20 ptos.
+Por año adicional o varias especializ. ( 10 ptos c/u)
+Solo se reconocen hasta 2 especializaciones.
+................................................................. Hasta 30 puntos.
+En Medicina ( cada año) 15 ptos................Hasta 75 ptos
+b. Por Título de Magister o Maestria,....hasta 40 ptos.
+Por varios títulos (20 ptos adicionales)...hasta 60 ptos.
+Por Magister o Maestria y especializaciónes sólo se
+podrá acumular .................................... Hasta 60 puntos.
+c. Por título de P¨HD o Doctorado...........hasta 80 ptos.
+Varios títulos (40 puntos adicionales)..hasta 12o ptos
+d. Para especializaciones clinicas en medicina humana y odontología 15 puntos por año...........hasta 75 ptos.
+
+CATEGORIAS
+A. Prof.Auxiliar 37 Ptos B. Prof.Asistente 58 Ptos
+C-Prof.Asociado 74 Ptos D. Prof. Titular 96 Ptos.
+
+\*\* C.D. Codigo de Dedicación
+
+1. Tiempo Completo 2. Medio tiempo
+
+2.1. Para quienes ingresan o reingresan:
+a. En investigación en Instituciones dedicadas a ésta, en
+cualquier campo de la ciencia, la técnica,las humanidades,
+el arte o la pedagogía,...................................hasta 6 ptos/año.
+b. Docencia Universitaria.......................... hasta 4 ptos/año.
+c. En cargos de dirección académica en empresas o enti-
+dades de reconocida calidad ................... Hasta 4 ptos/año.
+d. Experiencia profesional calificada diferente a la dodente
+............................................................................... Hasta 3 ptos/año.
+Los años de estudios de postgrado no se contabilizan para
+efectos de acreditación de puntaje, salvo para medicina y
+odontologia.
+El máximo puntaje que se podrá asignar por categoría,
+Será:
+Prof. Auxiliar 20 ptos. Prof. Asociado 90 ptos.
+Prof. Asistente 45 Ptos Prof.Titular 120 Ptos.
+
+Hora Catedra
+
+Los puntos se asignan por cada hora/semana/semestre
+(H/S/S)
+
+El máximo puntaje que se podrá asignar por
+categoría, será:
+
+Prof. Auxiliar 20 ptos.
+Prof. Asistente 45 ptos.
+Prof. Asociado 90 ptos.
+Prof, Titular 120 ptos.
+
+PUBLICACIONES EN REVISTAS
+
+![Reglas de puntajes](image.png)
+
+CLASE TIPO TEXTO
+
+1. Full Paper L : Libro AL: Artic. Libro |
+2. Short Comunication Ar: Artc. Revista
+3. Otras modalidades T: traducción
+   LIBROS
+4. Libros de investigación..............hasta 20 ptos
+5. Libros de texto...........................hasta 15 ptos
+   3.Libros de ensayo........................hasta 15 ptos
+   4, Traducciones de libro................hasta 15 ptos.
+   RESTRICCION DE PUNTAJES SEGÚN
+   No. DE AUTORES
+
+- Hasta 3 autores : Puntaje total cada uno.
+- De 4 a 5 autores: 1/2 del punt.asignado a la public
+- 6 ó más autores: Punt. Asig. A la publicación divido
+  en la mitad del número de autores.
+
+Por premios Nacionales e Inernacionales
+
+Si el premio tiene diversas categorias o niveles , se graduan
+los topes con base en las jerarquías del premio.
+Hasta ...................................................................... 15 ptos.
+
+PATENTES
+Hasta.................................................................... 25 ptos.
+
+DOCENCIA Y EXTENSION DESTACADAS
+
+LOS PUNTOS OBTENIDOS POR DOCENCIA Y/O EXTENSION DESTACADA SE ADICIONAN AL ITEM DE PRODUCTiVIDAD ACADEMICA EN LA INCLUSION CORRESPONDIENTE QUE SE PRESENTA EN LA PAGINA NO. 1.
+
+Los puntos seran asignados una (1) vez por año teniendo en cuenta la categoría (Res o73 -03 C.A:):
+
+Profesor Titular Hasta 5 Puntos
+Profesor Asociado Hasta 4 Puntos
+Profesor Asistente Hasta 3 Puntos
+Profesor Auxiliar Hasta 2 Puntos
 
 ---
 
@@ -801,7 +1248,6 @@ Profesor
 DocentePeriodo
   └── profesor_id → Profesor
 ```
-
 
 ## Reglas de integridad
 
