@@ -140,6 +140,11 @@ export const updateCredenciales = async (profesorId, data) => {
   return response.data;
 };
 
+export const patchCredenciales = async (profesorId, data) => {
+  const response = await apiClient.patch(`/credenciales/${profesorId}`, data);
+  return response.data;
+};
+
 export const deleteCredenciales = async (profesorId) => {
   const response = await apiClient.delete(`/credenciales/${profesorId}`);
   return response.data;

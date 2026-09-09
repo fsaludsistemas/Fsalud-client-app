@@ -4,7 +4,7 @@ import {
   getProfesorById,
   getCredencialesByProfesor,
   createCredenciales,
-  updateCredenciales,
+  patchCredenciales,
   getDocentePeriodos,
 } from "../api/apiClient";
 import {
@@ -388,7 +388,7 @@ const FACTORES = [
     idPrefix: "pre",
     accumulatedKey: "puntaje_acumulado",
     columns: [
-      { key: "inclusion_no", label: "Inclusión N.°" },
+      { key: "evento_no", label: "Evento N.°" },
       { key: "tipo", label: "Tipo" },
       { key: "premio_no", label: "Premio N.°" },
       { key: "descripcion", label: "Descripción" },
@@ -397,7 +397,12 @@ const FACTORES = [
       { key: "puntaje_acumulado", label: "Puntaje acumulado" },
     ],
     fields: [
-      { name: "inclusion_no", label: "Inclusión N.°", type: "number" },
+      {
+        name: "evento_no",
+        label: "Evento N.°",
+        type: "number",
+        required: true,
+      },
       {
         name: "tipo",
         label: "Tipo",
@@ -406,7 +411,18 @@ const FACTORES = [
         optionLabels: ["Premio (hasta 15 pts)", "Patente (hasta 25 pts)"],
         required: true,
       },
-      { name: "premio_no", label: "Premio N.°", type: "number" },
+      {
+        name: "premio_no",
+        label: "Premio N.°",
+        type: "number",
+        condition: (form) => form.tipo === "PREMIO",
+      },
+      {
+        name: "patente_no",
+        label: "Patente N.°",
+        type: "number",
+        condition: (form) => form.tipo === "PATENTE",
+      },
       { name: "descripcion", label: "Descripción", required: true },
       { name: "fecha", label: "Fecha", type: "date" },
     ],
@@ -536,6 +552,9 @@ const buildPayloadForFactor = (credenciales, factorKey, items) => {
 const defaultFormForFactor = (factor) =>
   Object.fromEntries(factor.fields.map((field) => [field.name, ""]));
 
+const getVisibleFields = (factor, form) =>
+  factor.fields.filter((field) => !field.condition || field.condition(form));
+
 const itemToForm = (factor, item) => {
   const form = defaultFormForFactor(factor);
   factor.fields.forEach((field) => {
@@ -555,7 +574,7 @@ const itemToForm = (factor, item) => {
 
 const formToItem = (factor, form, existingId) => {
   const item = { id: existingId || newItemId(factor.idPrefix) };
-  factor.fields.forEach((field) => {
+  getVisibleFields(factor, form).forEach((field) => {
     const raw = form[field.name];
     if (field.path) {
       let target = item;
@@ -680,7 +699,7 @@ const CredencialesProfesor = () => {
   const persistFactorItems = async (factorKey, items) => {
     const current = await ensureCredenciales();
     const payload = buildPayloadForFactor(current, factorKey, items);
-    const updated = await updateCredenciales(id, payload);
+    const updated = await patchCredenciales(id, payload);
     setCredenciales(updated);
   };
 
@@ -732,11 +751,25 @@ const CredencialesProfesor = () => {
     e.preventDefault();
     setFormError("");
 
-    const missing = selectedFactor.fields.find(
+    const missing = getVisibleFields(selectedFactor, formData).find(
       (field) => field.required && !String(formData[field.name] || "").trim(),
     );
     if (missing) {
       setFormError(`El campo "${missing.label}" es obligatorio.`);
+      return;
+    }
+
+    if (
+      selectedFactor.key === "premios_patentes" &&
+      !String(
+        formData[formData.tipo === "PREMIO" ? "premio_no" : "patente_no"] || "",
+      ).trim()
+    ) {
+      setFormError(
+        formData.tipo === "PREMIO"
+          ? 'El campo "Premio N.°" es obligatorio.'
+          : 'El campo "Patente N.°" es obligatorio.',
+      );
       return;
     }
 
@@ -1047,7 +1080,7 @@ const CredencialesProfesor = () => {
                 </FormControl>
               </Box>
 
-              {selectedFactor.fields.map((field) =>
+              {getVisibleFields(selectedFactor, formData).map((field) =>
                 field.type === "select" ? (
                   <Box key={field.name}>
                     <InputLabel
