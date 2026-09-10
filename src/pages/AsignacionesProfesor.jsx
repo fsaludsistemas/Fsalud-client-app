@@ -29,16 +29,22 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+  Switch,
+  FormControlLabel,
   TextField,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DetailProfesor from "../components/DetailProfesor";
 
 const ProfesorTabs = ({ value, onChange, profesorId }) => (
@@ -91,13 +97,17 @@ const ACTIVIDADES = [
   "SIN ACTIVIDADES",
 ];
 
-const CATEGORIAS = [
-  "DOCENTE",
-  "ADMINISTRATIVA",
-  "INVESTIGACION",
-  "EXTENSION",
-  "OTRA",
-];
+const getPeriodLabel = (docentePeriodo) =>
+  docentePeriodo?.periodo?.periodo ||
+  docentePeriodo?.periodo_id ||
+  "Sin periodo";
+
+const getPeriodOrder = (docentePeriodo) => {
+  const label = String(getPeriodLabel(docentePeriodo));
+  const match = label.match(/(\d{4})\D*([12])/);
+  if (match) return Number(match[1]) * 10 + Number(match[2]);
+  return -1;
+};
 
 const AsignacionesProfesor = () => {
   const { id } = useParams();
@@ -112,6 +122,7 @@ const AsignacionesProfesor = () => {
   const [editingAsignacion, setEditingAsignacion] = useState(null);
   const [formError, setFormError] = useState("");
   const [formData, setFormData] = useState(FORM_DEFAULT);
+  const [groupByActivity, setGroupByActivity] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -140,13 +151,148 @@ const AsignacionesProfesor = () => {
     if (id) fetchData();
   }, [id]);
 
-  const docentePeriodoLabel = useMemo(() => {
-    return (docentePeriodoId) => {
-      const dp = docentePeriodos.find((item) => item.id === docentePeriodoId);
-      if (!dp) return docentePeriodoId || "-";
-      return `${dp.periodo?.periodo || dp.periodo_id || dp.id}`.trim();
-    };
-  }, [docentePeriodos]);
+  const asignacionesPorPeriodo = useMemo(() => {
+    const periodos = new Map(
+      docentePeriodos.map((docentePeriodo) => [
+        String(docentePeriodo.id),
+        docentePeriodo,
+      ]),
+    );
+    const groups = new Map();
+
+    asignaciones.forEach((asignacion) => {
+      const docentePeriodo = periodos.get(
+        String(asignacion.docente_periodo_id),
+      );
+      const periodKey = String(
+        docentePeriodo?.id || asignacion.docente_periodo_id || "sin-periodo",
+      );
+      if (!groups.has(periodKey)) {
+        groups.set(periodKey, {
+          key: periodKey,
+          label: getPeriodLabel(docentePeriodo),
+          order: getPeriodOrder(docentePeriodo),
+          tipos: new Map(),
+        });
+      }
+
+      const periodGroup = groups.get(periodKey);
+      const tipo = asignacion.tipo_actividad || "Sin tipo de actividad";
+      if (!periodGroup.tipos.has(tipo)) {
+        periodGroup.tipos.set(tipo, new Map());
+      }
+
+      const categoria = asignacion.categoria || "Sin categoría";
+      const categoryItems = periodGroup.tipos.get(tipo).get(categoria) || [];
+      categoryItems.push(asignacion);
+      periodGroup.tipos.get(tipo).set(categoria, categoryItems);
+    });
+
+    return [...groups.values()].sort((left, right) => right.order - left.order);
+  }, [asignaciones, docentePeriodos]);
+
+  const asignacionesPorActividad = useMemo(() => {
+    const periodos = new Map(
+      docentePeriodos.map((docentePeriodo) => [
+        String(docentePeriodo.id),
+        docentePeriodo,
+      ]),
+    );
+    const groups = new Map();
+
+    asignaciones.forEach((asignacion) => {
+      const docentePeriodo = periodos.get(
+        String(asignacion.docente_periodo_id),
+      );
+      const tipo = asignacion.tipo_actividad || "Sin tipo de actividad";
+      if (!groups.has(tipo)) {
+        groups.set(tipo, {
+          key: tipo,
+          label: tipo,
+          categorias: new Map(),
+        });
+      }
+
+      const typeGroup = groups.get(tipo);
+      const categoria = asignacion.categoria || "Sin categoría";
+      if (!typeGroup.categorias.has(categoria)) {
+        typeGroup.categorias.set(categoria, new Map());
+      }
+
+      const categoryGroup = typeGroup.categorias.get(categoria);
+      const periodKey = String(
+        docentePeriodo?.id || asignacion.docente_periodo_id || "sin-periodo",
+      );
+      if (!categoryGroup.has(periodKey)) {
+        categoryGroup.set(periodKey, {
+          key: periodKey,
+          label: getPeriodLabel(docentePeriodo),
+          order: getPeriodOrder(docentePeriodo),
+          items: [],
+        });
+      }
+      categoryGroup.get(periodKey).items.push(asignacion);
+    });
+
+    return [...groups.values()].map((typeGroup) => ({
+      ...typeGroup,
+      categorias: [...typeGroup.categorias.entries()].map(
+        ([categoria, periods]) => ({
+          key: categoria,
+          label: categoria,
+          periodos: [...periods.values()].sort(
+            (left, right) => right.order - left.order,
+          ),
+        }),
+      ),
+    }));
+  }, [asignaciones, docentePeriodos]);
+
+  const renderAssignmentsTable = (items) => (
+    <TableContainer component={Paper} variant="outlined">
+      <Table size="small">
+        <TableHead sx={{ bgcolor: "#f5f5f5" }}>
+          <TableRow>
+            <TableCell sx={{ fontWeight: "bold" }}>Actividad</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Nombre</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Detalle</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Horas</TableCell>
+            <TableCell align="center" sx={{ fontWeight: "bold" }}>
+              Acciones
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {(items || []).map((asignacion) => (
+            <TableRow key={asignacion.id} hover>
+              <TableCell>{asignacion.actividad || "-"}</TableCell>
+              <TableCell>{asignacion.nombre_actividad || "-"}</TableCell>
+              <TableCell>{asignacion.detalle_actividad || "-"}</TableCell>
+              <TableCell>{asignacion.numero_horas ?? "-"}</TableCell>
+              <TableCell align="center">
+                <Stack direction="row" spacing={1} justifyContent="center">
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={() => handleOpenEdit(asignacion)}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleDelete(asignacion)}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 
   const handleOpenCreate = () => {
     setEditingAsignacion(null);
@@ -300,14 +446,26 @@ const AsignacionesProfesor = () => {
                 Asignaciones asociadas a los periodos docentes del profesor.
               </Typography>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenCreate}
-              sx={{ alignSelf: "end", ml: 8 }}
-            >
-              Nueva asignación
-            </Button>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={groupByActivity}
+                    onChange={(event) =>
+                      setGroupByActivity(event.target.checked)
+                    }
+                  />
+                }
+                label={groupByActivity ? "Por actividad" : "Por periodo"}
+              />
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenCreate}
+              >
+                Nueva asignación
+              </Button>
+            </Stack>
           </Stack>
 
           {success && (
@@ -325,69 +483,262 @@ const AsignacionesProfesor = () => {
             </Alert>
           )}
 
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead sx={{ bgcolor: "#f5f5f5" }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: "bold" }}>Periodo</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Tipo</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Actividad</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Nombre</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Horas</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Categoría</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: "bold" }}>
-                    Acciones
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {asignaciones.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center">
-                      No hay asignaciones registradas.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  asignaciones.map((asignacion) => (
-                    <TableRow key={asignacion.id} hover>
-                      <TableCell>
-                        {docentePeriodoLabel(asignacion.docente_periodo_id)}
-                      </TableCell>
-                      <TableCell>{asignacion.tipo_actividad || "-"}</TableCell>
-                      <TableCell>{asignacion.actividad || "-"}</TableCell>
-                      <TableCell>
-                        {asignacion.nombre_actividad || "-"}
-                      </TableCell>
-                      <TableCell>{asignacion.numero_horas ?? "-"}</TableCell>
-                      <TableCell>{asignacion.categoria || "-"}</TableCell>
-                      <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="center"
+          {asignaciones.length === 0 ? (
+            <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
+              No hay asignaciones registradas.
+            </Paper>
+          ) : groupByActivity ? (
+            <Stack spacing={1}>
+              {asignacionesPorActividad.map((tipo) => (
+                <Accordion
+                  key={tipo.key}
+                  defaultExpanded
+                  sx={{
+                    border: "1px solid #cfd8dc",
+                    borderRadius: 1,
+                    boxShadow: "none",
+                    "&:before": { display: "none" },
+                    "&.Mui-expanded": { margin: 0 },
+                  }}
+                >
+                  <AccordionSummary
+                    component="div"
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{ bgcolor: "#f5f7f8" }}
+                  >
+                    <Typography sx={{ fontWeight: 700, color: "#37474f" }}>
+                      {tipo.label}
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Stack spacing={1}>
+                      {tipo.categorias.map((categoria) => (
+                        <Accordion
+                          key={categoria.key}
+                          defaultExpanded
+                          sx={{
+                            boxShadow: "none",
+                            borderBottom: "1px solid #e0e0e0",
+                            "&:before": { display: "none" },
+                            "&.Mui-expanded": { margin: 0 },
+                          }}
                         >
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleOpenEdit(asignacion)}
+                          <AccordionSummary
+                            component="div"
+                            expandIcon={<ExpandMoreIcon />}
                           >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDelete(asignacion)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                            <Typography sx={{ fontWeight: 600 }}>
+                              {categoria.label}
+                            </Typography>
+                          </AccordionSummary>
+                          <AccordionDetails>
+                            <Stack spacing={1}>
+                              {categoria.periodos.map((periodo) => (
+                                <Accordion
+                                  key={periodo.key}
+                                  defaultExpanded
+                                  sx={{
+                                    ml: 2,
+                                    boxShadow: "none",
+                                    border: "1px solid #eceff1",
+                                    borderRadius: 1,
+                                    "&:before": { display: "none" },
+                                    "&.Mui-expanded": { margin: 0 },
+                                  }}
+                                >
+                                  <AccordionSummary
+                                    component="div"
+                                    expandIcon={<ExpandMoreIcon />}
+                                    sx={{ px: 1.5, minHeight: 42 }}
+                                  >
+                                    <Typography>
+                                      Periodo {periodo.label}
+                                    </Typography>
+                                  </AccordionSummary>
+                                  <AccordionDetails>
+                                    {renderAssignmentsTable(periodo.items)}
+                                  </AccordionDetails>
+                                </Accordion>
+                              ))}
+                            </Stack>
+                          </AccordionDetails>
+                        </Accordion>
+                      ))}
+                    </Stack>
+                  </AccordionDetails>
+                </Accordion>
+              ))}
+            </Stack>
+          ) : (
+            asignacionesPorPeriodo.map((periodo) => (
+              <Accordion
+                key={periodo.key}
+                defaultExpanded
+                sx={{
+                  border: "1px solid #cfd8dc",
+                  borderRadius: 1,
+                  boxShadow: "none",
+                  "&:before": { display: "none" },
+                  "&.Mui-expanded": { margin: 0 },
+                }}
+              >
+                <AccordionSummary
+                  component="div"
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{ bgcolor: "#e0e0e0" }}
+                >
+                  <Typography sx={{ fontWeight: 700, color: "#37474f" }}>
+                    Periodo {periodo.label}
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Stack spacing={1}>
+                    {[...periodo.tipos.entries()].map(([tipo, categorias]) => (
+                      <Accordion
+                        key={tipo}
+                        defaultExpanded
+                        sx={{
+                          boxShadow: "none",
+                          borderBottom: "1px solid #e0e0e0",
+                          "&:before": { display: "none" },
+                          "&.Mui-expanded": { margin: 0 },
+                        }}
+                      >
+                        <AccordionSummary
+                          component="div"
+                          expandIcon={<ExpandMoreIcon />}
+                          sx={{ px: 1, bgcolor: "#f2f2f2" }}
+                        >
+                          <Typography sx={{ fontWeight: 600 }}>
+                            {tipo}
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <Stack spacing={1}>
+                            {[...categorias.entries()].map(
+                              ([categoria, items]) => (
+                                <Accordion
+                                  key={categoria}
+                                  defaultExpanded
+                                  sx={{
+                                    ml: 2,
+                                    boxShadow: "none",
+                                    border: "1px solid #eceff1",
+                                    borderRadius: 1,
+                                    "&:before": { display: "none" },
+                                    "&.Mui-expanded": { margin: 0 },
+                                  }}
+                                >
+                                  <AccordionSummary
+                                    component="div"
+                                    expandIcon={<ExpandMoreIcon />}
+                                    sx={{
+                                      px: 1.5,
+                                      minHeight: 42,
+                                      bgcolor: "#f0f0f0",
+                                    }}
+                                  >
+                                    <Typography sx={{ fontWeight: 700 }}>
+                                      {categoria}
+                                    </Typography>
+                                  </AccordionSummary>
+                                  <AccordionDetails>
+                                    <TableContainer
+                                      component={Paper}
+                                      variant="outlined"
+                                    >
+                                      <Table size="small">
+                                        <TableHead sx={{ bgcolor: "#f5f5f5" }}>
+                                          <TableRow>
+                                            <TableCell
+                                              sx={{ fontWeight: "bold" }}
+                                            >
+                                              Actividad
+                                            </TableCell>
+                                            <TableCell
+                                              sx={{ fontWeight: "bold" }}
+                                            >
+                                              Nombre
+                                            </TableCell>
+                                            <TableCell
+                                              sx={{ fontWeight: "bold" }}
+                                            >
+                                              Detalle
+                                            </TableCell>
+                                            <TableCell
+                                              sx={{ fontWeight: "bold" }}
+                                            >
+                                              Horas
+                                            </TableCell>
+                                            <TableCell
+                                              align="center"
+                                              sx={{ fontWeight: "bold" }}
+                                            >
+                                              Acciones
+                                            </TableCell>
+                                          </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                          {items.map((asignacion) => (
+                                            <TableRow key={asignacion.id} hover>
+                                              <TableCell>
+                                                {asignacion.actividad || "-"}
+                                              </TableCell>
+                                              <TableCell>
+                                                {asignacion.nombre_actividad ||
+                                                  "-"}
+                                              </TableCell>
+                                              <TableCell>
+                                                {asignacion.detalle_actividad ||
+                                                  "-"}
+                                              </TableCell>
+                                              <TableCell>
+                                                {asignacion.numero_horas ?? "-"}
+                                              </TableCell>
+                                              <TableCell align="center">
+                                                <Stack
+                                                  direction="row"
+                                                  spacing={1}
+                                                  justifyContent="center"
+                                                >
+                                                  <IconButton
+                                                    size="small"
+                                                    color="primary"
+                                                    onClick={() =>
+                                                      handleOpenEdit(asignacion)
+                                                    }
+                                                  >
+                                                    <EditIcon fontSize="small" />
+                                                  </IconButton>
+                                                  <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() =>
+                                                      handleDelete(asignacion)
+                                                    }
+                                                  >
+                                                    <DeleteIcon fontSize="small" />
+                                                  </IconButton>
+                                                </Stack>
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
+                                  </AccordionDetails>
+                                </Accordion>
+                              ),
+                            )}
+                          </Stack>
+                        </AccordionDetails>
+                      </Accordion>
+                    ))}
+                  </Stack>
+                </AccordionDetails>
+              </Accordion>
+            ))
+          )}
         </Paper>
       )}
 
