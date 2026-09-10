@@ -35,7 +35,22 @@ const Layout = () => {
         sx={{ bgcolor: "#eceff1", color: "#37474f", boxShadow: 1 }}
       >
         <Toolbar sx={{ justifyContent: "space-between", position: "relative" }}>
-          <img src={logoUnivalle} alt="Logo" align="start" />
+          <Box
+            component="button"
+            type="button"
+            onClick={() => navigate("/")}
+            aria-label="Ir a la página de inicio"
+            sx={{
+              border: 0,
+              padding: 0,
+              background: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <img src={logoUnivalle} alt="Logo" />
+          </Box>
           {/* Placeholder for centering balance */}
           <Box sx={{ display: { xs: "none", sm: "block" } }} />
 
@@ -46,7 +61,7 @@ const Layout = () => {
               component="h1"
               sx={{ fontWeight: "bold", letterSpacing: 0.5 }}
             >
-              Facultad de salud
+              Información de Profesores Facultad de Salud
             </Typography>
             {user && (
               <Typography

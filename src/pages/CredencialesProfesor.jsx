@@ -631,6 +631,15 @@ const getFactorAccumulatedPoints = (factor, items) => {
     .find((value) => value !== null && value !== undefined);
 };
 
+const getEventsSummaryPoints = (resumen) => {
+  if (!resumen) return null;
+  const value =
+    resumen.eventos_credenciales ??
+    resumen.eventos_credenciales_total ??
+    resumen.puntos_totales;
+  return value === null || value === undefined ? null : value;
+};
+
 const CredencialesProfesor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -729,14 +738,6 @@ const CredencialesProfesor = () => {
     setOpenDialog(false);
     setEditingItem(null);
     setEditingIndex(null);
-    setFormError("");
-  };
-
-  const handleFactorChange = (nextKey) => {
-    if (editingItem) return;
-    const factor = FACTORES.find((item) => item.key === nextKey) || FACTORES[0];
-    setSelectedFactorKey(factor.key);
-    setFormData(defaultFormForFactor(factor));
     setFormError("");
   };
 
@@ -841,16 +842,6 @@ const CredencialesProfesor = () => {
         >
           Credenciales del Profesor
         </Typography>
-
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenCreate()}
-          disabled={loading}
-        >
-          Agregar registro
-        </Button>
       </Stack>
 
       {!loading && !error && profesor && (
@@ -889,7 +880,10 @@ const CredencialesProfesor = () => {
 
           {FACTORES.map((factor) => {
             const items = getItems(credenciales, factor.key);
-            const ptsValue = getFactorAccumulatedPoints(factor, items);
+            const ptsValue =
+              factor.key === "eventos_credenciales"
+                ? getEventsSummaryPoints(resumen)
+                : getFactorAccumulatedPoints(factor, items);
             const ptsLabel = formatPts(ptsValue);
 
             return (
@@ -1060,26 +1054,6 @@ const CredencialesProfesor = () => {
               </Alert>
             )}
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <Box>
-                <InputLabel
-                  sx={{ fontWeight: "bold", color: "#37474f", mb: 1 }}
-                >
-                  Factor
-                </InputLabel>
-                <FormControl fullWidth required disabled={Boolean(editingItem)}>
-                  <Select
-                    value={selectedFactorKey}
-                    onChange={(e) => handleFactorChange(e.target.value)}
-                  >
-                    {FACTORES.map((factor) => (
-                      <MenuItem key={factor.key} value={factor.key}>
-                        {factor.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-
               {getVisibleFields(selectedFactor, formData).map((field) =>
                 field.type === "select" ? (
                   <Box key={field.name}>

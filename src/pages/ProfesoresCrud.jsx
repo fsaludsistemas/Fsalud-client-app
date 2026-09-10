@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
   getProfesores,
   getDependencias,
+  getDocentePeriodos,
   createProfesor,
   updateProfesor,
   deleteProfesor,
@@ -31,21 +33,33 @@ import {
   Alert,
   CircularProgress,
   Stack,
-  InputAdornment,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 
 const TIPOS_IDENTIFICACION = ["CEDULA", "PASAPORTE", "TARJETA_IDENTIDAD"];
 const EMAIL_DOMAIN = "@correounivalle.edu.co";
+const ALL_FILTER = "TODOS";
 
 const ProfesoresCrud = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canManageDependencies = ["SISTEMAS", "ADMINISTRADOR"].includes(
+    user?.permiso,
+  );
   const [profesores, setProfesores] = useState([]);
   const [dependencias, setDependencias] = useState([]);
+  const [docentePeriodos, setDocentePeriodos] = useState([]);
+  const [filters, setFilters] = useState({
+    nivel: ALL_FILTER,
+    cargo: ALL_FILTER,
+    vinculacion: ALL_FILTER,
+    dedicacion: ALL_FILTER,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -68,18 +82,17 @@ const ProfesoresCrud = () => {
   });
   const [formError, setFormError] = useState("");
 
-  const [openDetail, setOpenDetail] = useState(false);
-  const [selectedProfId, setSelectedProfId] = useState(null);
-
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [profData, depData] = await Promise.all([
+      const [profData, depData, docentePeriodosData] = await Promise.all([
         getProfesores(),
         getDependencias(),
+        getDocentePeriodos(),
       ]);
       setProfesores(profData || []);
       setDependencias(depData || []);
+      setDocentePeriodos(docentePeriodosData || []);
       setError("");
     } catch (err) {
       console.error(err);
@@ -92,6 +105,68 @@ const ProfesoresCrud = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const periodosByProfesor = useMemo(() => {
+    return docentePeriodos.reduce((groups, docentePeriodo) => {
+      const profesorId = String(docentePeriodo.profesor_id);
+      groups[profesorId] ||= [];
+      groups[profesorId].push(docentePeriodo);
+      return groups;
+    }, {});
+  }, [docentePeriodos]);
+
+  const filterOptions = useMemo(() => {
+    const values = {
+      nivel: new Set(),
+      cargo: new Set(),
+      vinculacion: new Set(),
+      dedicacion: new Set(),
+    };
+    docentePeriodos.forEach((docentePeriodo) => {
+      if (docentePeriodo.nivel) values.nivel.add(docentePeriodo.nivel);
+      if (docentePeriodo.cargo) values.cargo.add(docentePeriodo.cargo);
+      if (docentePeriodo.tipo_vinculacion) {
+        values.vinculacion.add(docentePeriodo.tipo_vinculacion);
+      }
+      if (docentePeriodo.dedicacion) {
+        values.dedicacion.add(docentePeriodo.dedicacion);
+      }
+    });
+    return Object.fromEntries(
+      Object.entries(values).map(([key, options]) => [
+        key,
+        [...options].sort(),
+      ]),
+    );
+  }, [docentePeriodos]);
+
+  const filteredProfesores = useMemo(() => {
+    const hasActiveFilters = Object.values(filters).some(
+      (value) => value !== ALL_FILTER,
+    );
+
+    return profesores.filter((profesor) => {
+      const periodos = periodosByProfesor[String(profesor.id)] || [];
+      if (periodos.length === 0) return !hasActiveFilters;
+
+      return periodos.some(
+        (periodo) =>
+          (filters.nivel === ALL_FILTER || periodo.nivel === filters.nivel) &&
+          (filters.cargo === ALL_FILTER || periodo.cargo === filters.cargo) &&
+          (filters.vinculacion === ALL_FILTER ||
+            periodo.tipo_vinculacion === filters.vinculacion) &&
+          (filters.dedicacion === ALL_FILTER ||
+            periodo.dedicacion === filters.dedicacion),
+      );
+    });
+  }, [filters, periodosByProfesor, profesores]);
+
+  const handleFilterChange = (event) => {
+    setFilters((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }));
+  };
 
   const handleOpenCreate = () => {
     setEditingProf(null);
@@ -277,14 +352,26 @@ const ProfesoresCrud = () => {
         >
           Gestión de Profesores
         </Typography>
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<AddIcon />}
-          onClick={handleOpenCreate}
-        >
-          Nuevo Profesor
-        </Button>
+        <Stack direction="row" spacing={1}>
+          {canManageDependencies && (
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<CorporateFareIcon />}
+              onClick={() => navigate("/dependencias")}
+            >
+              Gestionar Dependencias
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreate}
+          >
+            Nuevo Profesor
+          </Button>
+        </Stack>
       </Stack>
 
       {/* Notifications */}
@@ -298,6 +385,35 @@ const ProfesoresCrud = () => {
           {error}
         </Alert>
       )}
+
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          {[
+            ["nivel", "Nivel"],
+            ["cargo", "Cargo"],
+            ["vinculacion", "Vinculación"],
+            ["dedicacion", "Dedicación"],
+          ].map(([name, label]) => (
+            <FormControl key={name} size="small" fullWidth>
+              <InputLabel id={`${name}-filter-label`}>{label}</InputLabel>
+              <Select
+                labelId={`${name}-filter-label`}
+                name={name}
+                value={filters[name]}
+                onChange={handleFilterChange}
+                label={label}
+              >
+                <MenuItem value={ALL_FILTER}>Todos</MenuItem>
+                {filterOptions[name].map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ))}
+        </Stack>
+      </Paper>
 
       {/* Main Table */}
       {loading ? (
@@ -333,7 +449,7 @@ const ProfesoresCrud = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {profesores.length === 0 ? (
+              {filteredProfesores.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}
@@ -344,7 +460,7 @@ const ProfesoresCrud = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                profesores.map((prof) => (
+                filteredProfesores.map((prof) => (
                   <TableRow key={prof.id} hover>
                     <TableCell sx={{ fontWeight: 500 }}>
                       {prof.nombres} {prof.apellidos}

@@ -508,7 +508,7 @@ Crea una asignación para un profesor en un periodo docente.
   "nombre_actividad": "Cátedra de Bases de Datos",
   "detalle_actividad": "Grupo 01, semestre 2026-1",
   "numero_horas": 8,
-  "categoria": "DOCENTE",
+  "categoria": "Pregrado",
   "createdAt": "2026-08-27T15:00:00.000Z",
   "periodo": {
     "id": "2026-1",

@@ -294,7 +294,6 @@ const DatosProfesor = () => {
       {!loading && !error && profesor && (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Stack spacing={3}>
-
             <Box>
               <Grid container spacing={2}>
                 <DetailRow
@@ -346,6 +345,14 @@ const DatosProfesor = () => {
                 <DetailRow
                   label="Fecha de nacimiento"
                   value={profesor.fecha_nacimiento}
+                />
+              </Grid>
+            </Box>
+            <Box>
+              <Grid container spacing={2}>
+                <DetailRow
+                  label="Fecha de vinculación"
+                  value={profesor.fecha_vinculacion}
                 />
               </Grid>
             </Box>
@@ -409,7 +416,9 @@ const DatosProfesor = () => {
                         Dedicación
                       </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Cargo</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>Nivel Académico</TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>
+                        Nivel Académico
+                      </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>Estado</TableCell>
                       <TableCell align="center" sx={{ fontWeight: "bold" }}>
                         Acciones
@@ -466,8 +475,6 @@ const DatosProfesor = () => {
             </Box>
 
             <Divider />
-
-
           </Stack>
         </Paper>
       )}
