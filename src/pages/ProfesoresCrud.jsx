@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   getProfesores,
+  searchProfesores,
   getDependencias,
   getDocentePeriodos,
   createProfesor,
@@ -34,12 +35,11 @@ import {
   CircularProgress,
   Stack,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
+import SearchIcon from "@mui/icons-material/Search";
 
 const TIPOS_IDENTIFICACION = ["CEDULA", "PASAPORTE", "TARJETA_IDENTIDAD"];
 const EMAIL_DOMAIN = "@correounivalle.edu.co";
@@ -63,6 +63,7 @@ const ProfesoresCrud = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Dialog State
   const [openDialog, setOpenDialog] = useState(false);
@@ -82,29 +83,33 @@ const ProfesoresCrud = () => {
   });
   const [formError, setFormError] = useState("");
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [profData, depData, docentePeriodosData] = await Promise.all([
-        getProfesores(),
-        getDependencias(),
-        getDocentePeriodos(),
-      ]);
-      setProfesores(profData || []);
-      setDependencias(depData || []);
-      setDocentePeriodos(docentePeriodosData || []);
-      setError("");
-    } catch (err) {
-      console.error(err);
-      setError("Error al cargar la información del servidor.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchData = useCallback(
+    async (search = searchTerm) => {
+      setLoading(true);
+      try {
+        const [profData, depData, docentePeriodosData] = await Promise.all([
+          search.trim() ? searchProfesores(search.trim()) : getProfesores(),
+          getDependencias(),
+          getDocentePeriodos(),
+        ]);
+        setProfesores(profData || []);
+        setDependencias(depData || []);
+        setDocentePeriodos(docentePeriodosData || []);
+        setError("");
+      } catch (err) {
+        console.error(err);
+        setError("Error al cargar la información del servidor.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [searchTerm],
+  );
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const timeoutId = setTimeout(() => fetchData(searchTerm), 300);
+    return () => clearTimeout(timeoutId);
+  }, [fetchData, searchTerm]);
 
   const periodosByProfesor = useMemo(() => {
     return docentePeriodos.reduce((groups, docentePeriodo) => {
@@ -223,9 +228,7 @@ const ProfesoresCrud = () => {
     setOpenDialog(false);
   };
 
-  const handleOpenDetail = (profId) => {
-    navigate(`/profesores/${profId}/datos`);
-  };
+  const handleOpenDetail = (profId) => navigate(`/profesores/${profId}/datos`);
 
   const handleFormChange = (e) => {
     setFormData({
@@ -317,6 +320,7 @@ const ProfesoresCrud = () => {
     setSuccess("");
     try {
       await deleteProfesor(id);
+      setOpenDialog(false);
       setSuccess("Profesor eliminado correctamente.");
       fetchData();
     } catch (err) {
@@ -342,9 +346,6 @@ const ProfesoresCrud = () => {
     <Box>
       {/* Navigation and Title */}
       <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-        <IconButton onClick={() => navigate("/")} color="primary">
-          <ArrowBackIcon />
-        </IconButton>
         <Typography
           variant="h4"
           component="h2"
@@ -387,31 +388,44 @@ const ProfesoresCrud = () => {
       )}
 
       <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          {[
-            ["nivel", "Nivel"],
-            ["cargo", "Cargo"],
-            ["vinculacion", "Vinculación"],
-            ["dedicacion", "Dedicación"],
-          ].map(([name, label]) => (
-            <FormControl key={name} size="small" fullWidth>
-              <InputLabel id={`${name}-filter-label`}>{label}</InputLabel>
-              <Select
-                labelId={`${name}-filter-label`}
-                name={name}
-                value={filters[name]}
-                onChange={handleFilterChange}
-                label={label}
-              >
-                <MenuItem value={ALL_FILTER}>Todos</MenuItem>
-                {filterOptions[name].map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          ))}
+        <Stack spacing={2}>
+          <TextField
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por nombres, apellidos o número de identificación"
+            label="Buscar docente"
+            fullWidth
+            size="small"
+            InputProps={{
+              startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            {[
+              ["nivel", "Nivel"],
+              ["cargo", "Cargo"],
+              ["vinculacion", "Vinculación"],
+              ["dedicacion", "Dedicación"],
+            ].map(([name, label]) => (
+              <FormControl key={name} size="small" fullWidth>
+                <InputLabel id={`${name}-filter-label`}>{label}</InputLabel>
+                <Select
+                  labelId={`${name}-filter-label`}
+                  name={name}
+                  value={filters[name]}
+                  onChange={handleFilterChange}
+                  label={label}
+                >
+                  <MenuItem value={ALL_FILTER}>Todos</MenuItem>
+                  {filterOptions[name].map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ))}
+          </Stack>
         </Stack>
       </Paper>
 
@@ -461,50 +475,38 @@ const ProfesoresCrud = () => {
                 </TableRow>
               ) : (
                 filteredProfesores.map((prof) => (
-                  <TableRow key={prof.id} hover>
+                  <TableRow
+                    key={prof.id}
+                    hover
+                    tabIndex={0}
+                    onClick={() => handleOpenDetail(prof.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleOpenDetail(prof.id);
+                      }
+                    }}
+                    sx={{ cursor: "pointer" }}
+                  >
                     <TableCell sx={{ fontWeight: 500 }}>
                       {prof.nombres} {prof.apellidos}
                     </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 600, color: "#546e7a" }}
-                      >
-                        {prof.tipo_identificacion}
-                      </Typography>
-                      {prof.numero_identificacion}
-                    </TableCell>
+                    <TableCell>{prof.numero_identificacion}</TableCell>
                     <TableCell>{prof.email_institucional}</TableCell>
                     <TableCell>
                       {getDependencyText(prof.dependencia_actual)}
                     </TableCell>
                     <TableCell align="center">
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        justifyContent="center"
-                      >
-                        <IconButton
-                          size="small"
-                          color="info"
-                          title="Ver detalle"
-                          onClick={() => handleOpenDetail(prof.id)}
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
+                      <Stack direction="row" spacing={1}>
                         <IconButton
                           size="small"
                           color="primary"
-                          onClick={() => handleOpenEdit(prof)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleOpenEdit(prof);
+                          }}
                         >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(prof.id)}
-                        >
-                          <DeleteIcon fontSize="small" />
+                          <EditIcon sx={{ fontSize: "medium", ml: 5 }} />
                         </IconButton>
                       </Stack>
                     </TableCell>
@@ -716,6 +718,16 @@ const ProfesoresCrud = () => {
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>
+            {editingProf && (
+              <Button
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => handleDelete(editingProf.id)}
+                sx={{ mr: "auto" }}
+              >
+                Eliminar
+              </Button>
+            )}
             <Button onClick={handleCloseDialog} color="inherit">
               Cancelar
             </Button>

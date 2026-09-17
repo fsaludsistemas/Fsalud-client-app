@@ -56,6 +56,13 @@ export const getProfesores = async () => {
   return response.data;
 };
 
+export const searchProfesores = async (search) => {
+  const response = await apiClient.get("/profesores/buscar", {
+    params: { search },
+  });
+  return response.data;
+};
+
 export const getProfesorById = async (id) => {
   const response = await apiClient.get(`/profesores/${id}`);
   return response.data;
@@ -109,6 +116,16 @@ export const getAsignacionesByProfesor = async (profesorId) => {
   return response.data;
 };
 
+export const getResumenHoras = async (docentePeriodoId, filters = {}) => {
+  const response = await apiClient.get("/asignaciones/resumen-horas", {
+    params: {
+      docente_periodo_id: docentePeriodoId,
+      ...filters,
+    },
+  });
+  return response.data;
+};
+
 export const createAsignacion = async (data) => {
   const response = await apiClient.post("/asignaciones", data);
   return response.data;
@@ -142,6 +159,21 @@ export const updateCredenciales = async (profesorId, data) => {
 
 export const patchCredenciales = async (profesorId, data) => {
   const response = await apiClient.patch(`/credenciales/${profesorId}`, data);
+  return response.data;
+};
+
+export const createCredencialEvento = async (profesorId, data) => {
+  const response = await apiClient.post(
+    `/credenciales/${profesorId}/eventos`,
+    data,
+  );
+  return response.data;
+};
+
+export const getProximoEvento = async (profesorId) => {
+  const response = await apiClient.get(
+    `/credenciales/${profesorId}/proximo-evento`,
+  );
   return response.data;
 };
 

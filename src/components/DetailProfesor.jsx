@@ -139,7 +139,7 @@ const DetailProfesor = ({ profesor, docentePeriodos = [] }) => {
               <TableCell sx={{ fontWeight: "bold" }}>Periodo</TableCell>
               <TableCell sx={{ fontWeight: "bold" }}>Vinculación</TableCell>
               <TableCell sx={{ fontWeight: "bold" }}>Dedicación</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Cargo</TableCell>
+              <TableCell sx={{ fontWeight: "bold" }}>Categoría</TableCell>
               <TableCell sx={{ fontWeight: "bold" }}>Nivel Académico</TableCell>
             </TableRow>
           </TableHead>

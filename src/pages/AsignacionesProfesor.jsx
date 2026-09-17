@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getProfesorById,
   getDocentePeriodos,
   getAsignacionesByProfesor,
+  getResumenHoras,
   createAsignacion,
   updateAsignacion,
   deleteAsignacion,
@@ -115,6 +116,7 @@ const AsignacionesProfesor = () => {
   const [profesor, setProfesor] = useState(null);
   const [docentePeriodos, setDocentePeriodos] = useState([]);
   const [asignaciones, setAsignaciones] = useState([]);
+  const [resumenesHoras, setResumenesHoras] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -124,7 +126,7 @@ const AsignacionesProfesor = () => {
   const [formData, setFormData] = useState(FORM_DEFAULT);
   const [groupByActivity, setGroupByActivity] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -134,22 +136,32 @@ const AsignacionesProfesor = () => {
           getDocentePeriodos(),
           getAsignacionesByProfesor(id),
         ]);
-      setProfesor(profData);
-      setDocentePeriodos(
-        (docentePeriodosData || []).filter((dp) => dp.profesor_id === id),
+      const periodosDelProfesor = (docentePeriodosData || []).filter(
+        (dp) => dp.profesor_id === id,
       );
+      const resumenes = await Promise.all(
+        periodosDelProfesor.map(async (dp) => [
+          String(dp.id),
+          await getResumenHoras(dp.id),
+        ]),
+      );
+      setProfesor(profData);
+      setDocentePeriodos(periodosDelProfesor);
       setAsignaciones(asignacionesData || []);
+      setResumenesHoras(Object.fromEntries(resumenes));
     } catch (err) {
       console.error(err);
       setError("Error al cargar las asignaciones del profesor.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    if (id) fetchData();
-  }, [id]);
+    if (!id) return undefined;
+    const timeoutId = setTimeout(() => fetchData(), 0);
+    return () => clearTimeout(timeoutId);
+  }, [fetchData, id]);
 
   const asignacionesPorPeriodo = useMemo(() => {
     const periodos = new Map(
@@ -172,6 +184,7 @@ const AsignacionesProfesor = () => {
           key: periodKey,
           label: getPeriodLabel(docentePeriodo),
           order: getPeriodOrder(docentePeriodo),
+          totalHoras: resumenesHoras[periodKey]?.total_horas_periodo || 0,
           tipos: new Map(),
         });
       }
@@ -189,7 +202,7 @@ const AsignacionesProfesor = () => {
     });
 
     return [...groups.values()].sort((left, right) => right.order - left.order);
-  }, [asignaciones, docentePeriodos]);
+  }, [asignaciones, docentePeriodos, resumenesHoras]);
 
   const asignacionesPorActividad = useMemo(() => {
     const periodos = new Map(
@@ -228,6 +241,8 @@ const AsignacionesProfesor = () => {
           key: periodKey,
           label: getPeriodLabel(docentePeriodo),
           order: getPeriodOrder(docentePeriodo),
+          totalHoras:
+            resumenesHoras[periodKey]?.horas_por_tipo_actividad?.[tipo] || 0,
           items: [],
         });
       }
@@ -246,7 +261,17 @@ const AsignacionesProfesor = () => {
         }),
       ),
     }));
-  }, [asignaciones, docentePeriodos]);
+  }, [asignaciones, docentePeriodos, resumenesHoras]);
+
+  const getSummaryHours = (periodKey, group, value) =>
+    Number(resumenesHoras[periodKey]?.[group]?.[value]) || 0;
+
+  const getTotalByGroup = (group, value) =>
+    docentePeriodos.reduce(
+      (total, docentePeriodo) =>
+        total + getSummaryHours(String(docentePeriodo.id), group, value),
+      0,
+    );
 
   const renderAssignmentsTable = (items) => (
     <TableContainer component={Paper} variant="outlined">
@@ -492,7 +517,7 @@ const AsignacionesProfesor = () => {
               {asignacionesPorActividad.map((tipo) => (
                 <Accordion
                   key={tipo.key}
-                  defaultExpanded
+                  defaultExpanded={false}
                   sx={{
                     border: "1px solid #cfd8dc",
                     borderRadius: 1,
@@ -507,7 +532,9 @@ const AsignacionesProfesor = () => {
                     sx={{ bgcolor: "#f5f7f8" }}
                   >
                     <Typography sx={{ fontWeight: 700, color: "#37474f" }}>
-                      {tipo.label}
+                      {tipo.label} (
+                      {getTotalByGroup("horas_por_tipo_actividad", tipo.label)}{" "}
+                      horas)
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails>
@@ -515,7 +542,7 @@ const AsignacionesProfesor = () => {
                       {tipo.categorias.map((categoria) => (
                         <Accordion
                           key={categoria.key}
-                          defaultExpanded
+                          defaultExpanded={false}
                           sx={{
                             boxShadow: "none",
                             borderBottom: "1px solid #e0e0e0",
@@ -528,7 +555,12 @@ const AsignacionesProfesor = () => {
                             expandIcon={<ExpandMoreIcon />}
                           >
                             <Typography sx={{ fontWeight: 600 }}>
-                              {categoria.label}
+                              {categoria.label} (
+                              {getTotalByGroup(
+                                "horas_por_categoria",
+                                categoria.label,
+                              )}{" "}
+                              horas)
                             </Typography>
                           </AccordionSummary>
                           <AccordionDetails>
@@ -536,7 +568,7 @@ const AsignacionesProfesor = () => {
                               {categoria.periodos.map((periodo) => (
                                 <Accordion
                                   key={periodo.key}
-                                  defaultExpanded
+                                  defaultExpanded={false}
                                   sx={{
                                     ml: 2,
                                     boxShadow: "none",
@@ -552,7 +584,13 @@ const AsignacionesProfesor = () => {
                                     sx={{ px: 1.5, minHeight: 42 }}
                                   >
                                     <Typography>
-                                      Periodo {periodo.label}
+                                      Periodo {periodo.label} (
+                                      {getSummaryHours(
+                                        periodo.key,
+                                        "horas_por_tipo_actividad",
+                                        tipo.label,
+                                      )}{" "}
+                                      horas)
                                     </Typography>
                                   </AccordionSummary>
                                   <AccordionDetails>
@@ -573,7 +611,7 @@ const AsignacionesProfesor = () => {
             asignacionesPorPeriodo.map((periodo) => (
               <Accordion
                 key={periodo.key}
-                defaultExpanded
+                defaultExpanded={false}
                 sx={{
                   border: "1px solid #cfd8dc",
                   borderRadius: 1,
@@ -588,7 +626,7 @@ const AsignacionesProfesor = () => {
                   sx={{ bgcolor: "#e0e0e0" }}
                 >
                   <Typography sx={{ fontWeight: 700, color: "#37474f" }}>
-                    Periodo {periodo.label}
+                    Periodo {periodo.label} ({periodo.totalHoras} horas)
                   </Typography>
                 </AccordionSummary>
                 <AccordionDetails>
@@ -596,7 +634,7 @@ const AsignacionesProfesor = () => {
                     {[...periodo.tipos.entries()].map(([tipo, categorias]) => (
                       <Accordion
                         key={tipo}
-                        defaultExpanded
+                        defaultExpanded={false}
                         sx={{
                           boxShadow: "none",
                           borderBottom: "1px solid #e0e0e0",
@@ -610,7 +648,13 @@ const AsignacionesProfesor = () => {
                           sx={{ px: 1, bgcolor: "#f2f2f2" }}
                         >
                           <Typography sx={{ fontWeight: 600 }}>
-                            {tipo}
+                            {tipo} (
+                            {getSummaryHours(
+                              periodo.key,
+                              "horas_por_tipo_actividad",
+                              tipo,
+                            )}{" "}
+                            horas)
                           </Typography>
                         </AccordionSummary>
                         <AccordionDetails>
@@ -619,7 +663,7 @@ const AsignacionesProfesor = () => {
                               ([categoria, items]) => (
                                 <Accordion
                                   key={categoria}
-                                  defaultExpanded
+                                  defaultExpanded={false}
                                   sx={{
                                     ml: 2,
                                     boxShadow: "none",
@@ -639,7 +683,13 @@ const AsignacionesProfesor = () => {
                                     }}
                                   >
                                     <Typography sx={{ fontWeight: 700 }}>
-                                      {categoria}
+                                      {categoria} (
+                                      {getSummaryHours(
+                                        periodo.key,
+                                        "horas_por_categoria",
+                                        categoria,
+                                      )}{" "}
+                                      horas)
                                     </Typography>
                                   </AccordionSummary>
                                   <AccordionDetails>
