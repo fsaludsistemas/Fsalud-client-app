@@ -5,6 +5,8 @@ import {
   getCredencialesByProfesor,
   createCredenciales,
   patchCredenciales,
+  createCredencialEvento,
+  getProximoEvento,
   getDocentePeriodos,
 } from "../api/apiClient";
 import {
@@ -107,6 +109,7 @@ const FACTORES = [
       { key: "numero_evento", label: "Evento N.°" },
       { key: "clase", label: "Clase" },
       { key: "dedicacion", label: "Dedicación" },
+      { key: "categoria", label: "Categoría" },
       { key: "factores_puntaje", label: "Factores de puntaje" },
       { key: "puntos_del_evento", label: "Puntos del evento" },
       { key: "total_puntos_acumulado", label: "Total acumulado" },
@@ -117,16 +120,40 @@ const FACTORES = [
         name: "numero_evento",
         label: "Evento N.°",
         type: "number",
-        required: true,
       },
       {
         name: "clase",
         label: "Clase",
         type: "select",
-        options: ["Inclusión", "Ascenso", "Actualización"],
+        options: [
+          "Inclusión",
+          "Reajuste",
+          "Corrección",
+          "Ascenso",
+          "Actualización",
+        ],
         required: true,
       },
-      { name: "dedicacion", label: "Dedicación", required: true },
+      {
+        name: "dedicacion",
+        label: "Dedicación",
+        type: "select",
+        options: ["T.C.", "M.T.", "H.C."],
+        required: true,
+      },
+      {
+        name: "categoria",
+        label: "Categoría",
+        type: "select",
+        options: ["A", "B", "C", "D"],
+        optionLabels: [
+          "A — Auxiliar",
+          "B — Asistente",
+          "C — Asociado",
+          "D — Titular",
+        ],
+        required: true,
+      },
       {
         name: "soporte_acta_ccs",
         path: ["soporte", "acta_ccs"],
@@ -135,13 +162,19 @@ const FACTORES = [
       {
         name: "soporte_fecha",
         path: ["soporte", "fecha"],
-        label: "Fecha del soporte",
+        label: "Fecha",
         type: "date",
       },
       {
         name: "soporte_firma_presidente_url",
         path: ["soporte", "firma_presidente_url"],
         label: "URL firma del presidente",
+      },
+      {
+        name: "soporte_correo_presidente",
+        path: ["soporte", "correo_presidente"],
+        label: "Correo del presidente",
+        type: "email",
       },
     ],
   },
@@ -603,6 +636,64 @@ const formToItem = (factor, form, existingId) => {
   return item;
 };
 
+const EVENT_REFERENCE_FIELDS = new Set([
+  "numero_evento",
+  "evento_no",
+  "inclusion_no",
+]);
+
+const getDialogFields = (factor, form, isEventFactor) =>
+  getVisibleFields(factor, form).filter(
+    (field) => !isEventFactor || !EVENT_REFERENCE_FIELDS.has(field.name),
+  );
+
+const buildEventFactorPayload = (factorKey, item) => {
+  const factorItem = { ...item };
+  EVENT_REFERENCE_FIELDS.forEach((field) => delete factorItem[field]);
+
+  switch (factorKey) {
+    case "titulos_pregrado":
+      return { titulos_universitarios: { pregrado: [factorItem] } };
+    case "titulos_posgrado":
+      return { titulos_universitarios: { posgrado: [factorItem] } };
+    case "categoria":
+      return { historial_categoria: [factorItem] };
+    case "exp_tiempo_parcial":
+      return { experiencia_calificada: { tiempo_parcial: [factorItem] } };
+    case "exp_hora_catedra":
+      return { experiencia_calificada: { hora_catedra: [factorItem] } };
+    case "productividad":
+      return { productividad_academica: [factorItem] };
+    case "premios_patentes":
+      return { premios_y_patentes: [factorItem] };
+    case "docencia":
+      return { docencia_destacada: [factorItem] };
+    case "extension":
+      return { extension_destacada: [factorItem] };
+    default:
+      return {};
+  }
+};
+
+const buildEventFactorsPayload = (factorItems) =>
+  factorItems.reduce((payload, { factorKey, item }) => {
+    const factorPayload = buildEventFactorPayload(factorKey, item);
+    Object.entries(factorPayload).forEach(([key, value]) => {
+      if (key === "titulos_universitarios" || key === "experiencia_calificada") {
+        payload[key] ||= {};
+        Object.entries(value).forEach(([nestedKey, nestedItems]) => {
+          payload[key][nestedKey] = [
+            ...(payload[key][nestedKey] || []),
+            ...nestedItems,
+          ];
+        });
+      } else {
+        payload[key] = [...(payload[key] || []), ...value];
+      }
+    });
+    return payload;
+  }, {});
+
 const formatCell = (column, item) => {
   const value = item[column.key];
   if (value === null || value === undefined || value === "") return "—";
@@ -656,6 +747,10 @@ const CredencialesProfesor = () => {
   const [formData, setFormData] = useState(defaultFormForFactor(FACTORES[0]));
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [eventStep, setEventStep] = useState(null);
+  const [eventData, setEventData] = useState(null);
+  const [pendingEventFactors, setPendingEventFactors] = useState([]);
+  const [nextEventNumber, setNextEventNumber] = useState(null);
 
   const selectedFactor = useMemo(
     () =>
@@ -720,6 +815,15 @@ const CredencialesProfesor = () => {
     setEditingIndex(null);
     setFormData(defaultFormForFactor(factor));
     setFormError("");
+    setEventStep(factor.key === "eventos_credenciales" ? "event" : null);
+    setEventData(null);
+    setPendingEventFactors([]);
+    setNextEventNumber(null);
+    if (factor.key === "eventos_credenciales") {
+      getProximoEvento(id)
+        .then((preview) => setNextEventNumber(preview.proximo_numero_evento))
+        .catch(() => setNextEventNumber(null));
+    }
     setOpenDialog(true);
   };
 
@@ -731,6 +835,10 @@ const CredencialesProfesor = () => {
     setEditingIndex(index);
     setFormData(itemToForm(factor, item));
     setFormError("");
+    setEventStep(null);
+    setEventData(null);
+    setPendingEventFactors([]);
+    setNextEventNumber(null);
     setOpenDialog(true);
   };
 
@@ -739,6 +847,10 @@ const CredencialesProfesor = () => {
     setEditingItem(null);
     setEditingIndex(null);
     setFormError("");
+    setEventStep(null);
+    setEventData(null);
+    setPendingEventFactors([]);
+    setNextEventNumber(null);
   };
 
   const handleFormChange = (e) => {
@@ -748,11 +860,24 @@ const CredencialesProfesor = () => {
     }));
   };
 
+  const handleEventFactorChange = (e) => {
+    const factor = FACTORES.find((item) => item.key === e.target.value);
+    if (!factor) return;
+    setSelectedFactorKey(factor.key);
+    setFormData(defaultFormForFactor(factor));
+    setFormError("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError("");
 
-    const missing = getVisibleFields(selectedFactor, formData).find(
+    const dialogFields = getDialogFields(
+      selectedFactor,
+      formData,
+      eventStep !== null,
+    );
+    const missing = dialogFields.find(
       (field) => field.required && !String(formData[field.name] || "").trim(),
     );
     if (missing) {
@@ -778,6 +903,46 @@ const CredencialesProfesor = () => {
     setError("");
     setSuccess("");
     try {
+      if (eventStep === "event") {
+        const nextEvent = formToItem(selectedFactor, formData);
+        delete nextEvent.id;
+        setEventData(nextEvent);
+        const categoryFactor = FACTORES.find(
+          (factor) => factor.key === "categoria",
+        );
+        setSelectedFactorKey(categoryFactor.key);
+        setFormData(defaultFormForFactor(categoryFactor));
+        setEventStep("factor");
+        return;
+      }
+
+      if (eventStep === "factor") {
+        const factorItem = formToItem(selectedFactor, formData);
+        const nextFactors = [
+          ...pendingEventFactors,
+          { factorKey: selectedFactor.key, item: factorItem },
+        ];
+        const action = e.nativeEvent.submitter?.value || "finalize";
+
+        if (action === "add") {
+          setPendingEventFactors(nextFactors);
+          setSelectedFactorKey("categoria");
+          setFormData(defaultFormForFactor(FACTORES.find((factor) => factor.key === "categoria")));
+          setFormError("");
+          return;
+        }
+
+        await ensureCredenciales();
+        const response = await createCredencialEvento(id, {
+          evento: eventData,
+          ...buildEventFactorsPayload(nextFactors),
+        });
+        setCredenciales(response.credenciales || response);
+        setSuccess("Evento y registro del factor agregados correctamente.");
+        setOpenDialog(false);
+        return;
+      }
+
       const current = credenciales || emptyCredenciales(id);
       const currentItems = getItems(current, selectedFactor.key);
       const nextItem = formToItem(selectedFactor, formData, editingItem?.id);
@@ -887,7 +1052,10 @@ const CredencialesProfesor = () => {
             const ptsLabel = formatPts(ptsValue);
 
             return (
-              <Accordion key={factor.key} defaultExpanded={items.length > 0}>
+              <Accordion
+                key={factor.key}
+                defaultExpanded={factor.key === "eventos_credenciales"}
+              >
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Stack
                     direction="row"
@@ -947,6 +1115,73 @@ const CredencialesProfesor = () => {
                   </Stack>
                 </AccordionSummary>
                 <AccordionDetails>
+                  {factor.key === "eventos_credenciales" ? (
+                    items.length === 0 ? (
+                      <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+                        Sin registros en este factor.
+                      </Typography>
+                    ) : (
+                      <Stack spacing={1}>
+                        {items.map((item, index) => (
+                          <Accordion
+                            key={item.id || `${factor.key}-${index}`}
+                            defaultExpanded={false}
+                            sx={{
+                              border: "1px solid #cfd8dc",
+                              borderRadius: 1,
+                              boxShadow: "none",
+                              "&:before": { display: "none" },
+                            }}
+                          >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography sx={{ fontWeight: 600 }}>
+                                Evento N.° {item.numero_evento || "-"} · {item.clase || "-"} · {item.categoria || "-"} - {item.dedicacion || "-"}
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <TableContainer component={Paper} variant="outlined">
+                                <Table size="small">
+                                  <TableBody>
+                                    {factor.columns.map((column) => (
+                                      <TableRow key={column.key}>
+                                        <TableCell sx={{ fontWeight: "bold", width: "35%" }}>
+                                          {column.label}
+                                        </TableCell>
+                                        <TableCell>{formatCell(column, item)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: "bold" }}>Acciones</TableCell>
+                                      <TableCell>
+                                        <Stack direction="row" spacing={1}>
+                                          <IconButton
+                                            size="small"
+                                            color="primary"
+                                            title="Editar registro"
+                                            onClick={() => handleOpenEdit(factor.key, item, index)}
+                                          >
+                                            <EditIcon fontSize="small" />
+                                          </IconButton>
+                                          <IconButton
+                                            size="small"
+                                            color="error"
+                                            title="Eliminar registro"
+                                            onClick={() => handleDeleteItem(factor.key, item, index)}
+                                          >
+                                            <DeleteIcon fontSize="small" />
+                                          </IconButton>
+                                        </Stack>
+                                      </TableCell>
+                                    </TableRow>
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </AccordionDetails>
+                          </Accordion>
+                        ))}
+                      </Stack>
+                    )
+                  ) : (
                   <TableContainer
                     component={Paper}
                     sx={{ borderRadius: 2, boxShadow: 1 }}
@@ -1030,6 +1265,7 @@ const CredencialesProfesor = () => {
                       </TableBody>
                     </Table>
                   </TableContainer>
+                  )}
                 </AccordionDetails>
               </Accordion>
             );
@@ -1045,7 +1281,13 @@ const CredencialesProfesor = () => {
       >
         <form onSubmit={handleSubmit}>
           <DialogTitle sx={{ fontWeight: "bold", color: "#37474f" }}>
-            {editingItem ? "Editar registro" : "Nuevo registro de credenciales"}
+            {editingItem
+              ? "Editar registro"
+              : eventStep === "event"
+                ? "Nuevo evento de credenciales"
+                : eventStep === "factor"
+                  ? "Agregar factor al evento"
+                  : "Nuevo registro de credenciales"}
           </DialogTitle>
           <DialogContent dividers>
             {formError && (
@@ -1054,7 +1296,44 @@ const CredencialesProfesor = () => {
               </Alert>
             )}
             <Stack spacing={2} sx={{ mt: 1 }}>
-              {getVisibleFields(selectedFactor, formData).map((field) =>
+              {eventStep === "factor" && (
+                <Stack spacing={2}>
+                  <Alert severity="info">
+                    Evento N.° {nextEventNumber || "pendiente"} · Clase: {eventData?.clase || "-"} · Dedicación: {eventData?.dedicacion || "-"}
+                  </Alert>
+                  <Box>
+                    <InputLabel
+                      sx={{ fontWeight: "bold", color: "#37474f", mb: 1 }}
+                    >
+                      Factor que se agregará
+                    </InputLabel>
+                    <FormControl fullWidth>
+                      <Select
+                        value={selectedFactorKey}
+                        onChange={handleEventFactorChange}
+                      >
+                        {FACTORES.filter(
+                          (factor) => factor.key !== "eventos_credenciales",
+                        ).map((factor) => (
+                          <MenuItem key={factor.key} value={factor.key}>
+                            {factor.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  {pendingEventFactors.length > 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      Registros preparados: {pendingEventFactors.length}
+                    </Typography>
+                  )}
+                </Stack>
+              )}
+              {getDialogFields(
+                selectedFactor,
+                formData,
+                eventStep !== null,
+              ).map((field) =>
                 field.type === "select" ? (
                   <Box key={field.name}>
                     <InputLabel
@@ -1090,9 +1369,11 @@ const CredencialesProfesor = () => {
                       type={
                         field.type === "date"
                           ? "date"
-                          : field.type === "number"
-                            ? "number"
-                            : "text"
+                          : field.type === "email"
+                            ? "email"
+                            : field.type === "number"
+                              ? "number"
+                              : "text"
                       }
                       value={formData[field.name] || ""}
                       onChange={handleFormChange}
@@ -1121,14 +1402,24 @@ const CredencialesProfesor = () => {
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="success"
-              disabled={saving}
-            >
-              {editingItem ? "Guardar cambios" : "Agregar"}
-            </Button>
+            {eventStep === "factor" ? (
+              <>
+                <Button type="submit" name="factorAction" value="add" disabled={saving}>
+                  Guardar y añadir otro
+                </Button>
+                <Button type="submit" name="factorAction" value="finalize" variant="contained" color="success" disabled={saving}>
+                  Guardar y finalizar
+                </Button>
+              </>
+            ) : (
+              <Button type="submit" variant="contained" color="success" disabled={saving}>
+                {editingItem
+                  ? "Guardar cambios"
+                  : eventStep === "event"
+                    ? "Continuar"
+                    : "Agregar"}
+              </Button>
+            )}
           </DialogActions>
         </form>
       </Dialog>
