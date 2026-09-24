@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@mui/material";
 import { getDependencias } from "../api/apiClient";
+import { fetchProtectedFile } from "../utils/protectedFile";
 
 const getPeriodLabel = (docentePeriodo) =>
   docentePeriodo?.periodo?.periodo || docentePeriodo?.periodo_id || "";
@@ -36,6 +37,7 @@ const getPeriodOrder = (docentePeriodo) => {
 
 const DetailProfesor = ({ profesor, docentePeriodos = [] }) => {
   const [dependencias, setDependencias] = useState([]);
+  const [fotoSrc, setFotoSrc] = useState("");
 
   useEffect(() => {
     const fetchDeps = async () => {
@@ -48,6 +50,24 @@ const DetailProfesor = ({ profesor, docentePeriodos = [] }) => {
     };
     fetchDeps();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl;
+    setFotoSrc("");
+    if (profesor?.foto_url) {
+      fetchProtectedFile(profesor.foto_url)
+        .then((url) => {
+          objectUrl = url;
+          if (active) setFotoSrc(url);
+        })
+        .catch(() => setFotoSrc(""));
+    }
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [profesor?.foto_url]);
 
   if (!profesor) return null;
 
@@ -88,7 +108,7 @@ const DetailProfesor = ({ profesor, docentePeriodos = [] }) => {
     <Paper sx={{ p: 3, borderRadius: 3, mb: 3, boxShadow: 1 }}>
       <Stack direction="row" spacing={3} alignItems="center">
         <Avatar
-          src={profesor.foto_url || undefined}
+          src={fotoSrc || undefined}
           alt={`${profesor.nombres} ${profesor.apellidos}`}
           sx={{
             width: 60,

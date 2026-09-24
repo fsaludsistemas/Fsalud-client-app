@@ -177,6 +177,38 @@ export const getProximoEvento = async (profesorId) => {
   return response.data;
 };
 
+export const uploadStorageFile = async ({
+  profesor_id,
+  file,
+  tipo,
+  factor,
+  referencia_id,
+}) => {
+  const content_type = file.type || "application/octet-stream";
+  const targetResponse = await apiClient.post("/storage/upload-target", {
+    profesor_id,
+    nombre_archivo: file.name,
+    content_type,
+    tipo,
+    factor,
+    referencia_id,
+  });
+  const target = targetResponse.data;
+  const token = await getIdToken();
+  const uploadResponse = await fetch(target.uploadUrl, {
+    method: target.method || "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": content_type,
+    },
+    body: file,
+  });
+  if (!uploadResponse.ok) {
+    throw new Error("No se pudo subir el archivo al bucket.");
+  }
+  return target.downloadUrl;
+};
+
 export const deleteCredenciales = async (profesorId) => {
   const response = await apiClient.delete(`/credenciales/${profesorId}`);
   return response.data;
