@@ -9,6 +9,7 @@ import {
   createProfesor,
   updateProfesor,
   deleteProfesor,
+  uploadStorageFile,
 } from "../api/apiClient";
 import {
   Box,
@@ -40,6 +41,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import SearchIcon from "@mui/icons-material/Search";
+import ProtectedFileLink from "../components/ProtectedFileLink";
 
 const TIPOS_IDENTIFICACION = ["CEDULA", "PASAPORTE", "TARJETA_IDENTIDAD"];
 const EMAIL_DOMAIN = "@correounivalle.edu.co";
@@ -80,6 +82,7 @@ const ProfesoresCrud = () => {
     telefono: "",
     fecha_vinculacion: "",
     foto_url: "",
+    foto_file: null,
   });
   const [formError, setFormError] = useState("");
 
@@ -187,6 +190,7 @@ const ProfesoresCrud = () => {
       telefono: "",
       fecha_vinculacion: "",
       foto_url: "",
+      foto_file: null,
     });
     setFormError("");
     setOpenDialog(true);
@@ -219,6 +223,7 @@ const ProfesoresCrud = () => {
       telefono: prof.telefono || "",
       fecha_vinculacion: prof.fecha_vinculacion || "",
       foto_url: prof.foto_url || "",
+      foto_file: null,
     });
     setFormError("");
     setOpenDialog(true);
@@ -231,9 +236,11 @@ const ProfesoresCrud = () => {
   const handleOpenDetail = (profId) => navigate(`/profesores/${profId}/datos`);
 
   const handleFormChange = (e) => {
+    const value = e.target.type === "file" ? e.target.files?.[0] || null : e.target.value;
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+      ...(e.target.type === "file" ? { [e.target.name]: value } : {}),
     });
   };
 
@@ -287,16 +294,33 @@ const ProfesoresCrud = () => {
       fecha_nacimiento: formData.fecha_nacimiento || undefined,
       telefono: formData.telefono.trim() || undefined,
       fecha_vinculacion: formData.fecha_vinculacion || undefined,
-      foto_url: null,
+      foto_url: formData.foto_url || undefined,
       dependencia_actual,
     };
 
     try {
       if (editingProf) {
+        if (formData.foto_file) {
+          payload.foto_url = await uploadStorageFile({
+            profesor_id: editingProf.id,
+            file: formData.foto_file,
+            tipo: "FOTO_PROFESOR",
+            referencia_id: String(editingProf.id),
+          });
+        }
         await updateProfesor(editingProf.id, payload);
         setSuccess("Profesor actualizado correctamente.");
       } else {
-        await createProfesor(payload);
+        const created = await createProfesor(payload);
+        if (formData.foto_file && created?.id) {
+          const foto_url = await uploadStorageFile({
+            profesor_id: created.id,
+            file: formData.foto_file,
+            tipo: "FOTO_PROFESOR",
+            referencia_id: String(created.id),
+          });
+          await updateProfesor(created.id, { foto_url });
+        }
         setSuccess("Profesor creado correctamente.");
       }
       setOpenDialog(false);
@@ -715,6 +739,19 @@ const ProfesoresCrud = () => {
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
+
+              <InputLabel sx={{ fontWeight: "bold", color: "#37474f" }}>
+                Foto del profesor (Opcional)
+              </InputLabel>
+              <Button component="label" variant="outlined" fullWidth sx={{ justifyContent: "flex-start", py: 1.5 }}>
+                {formData.foto_file?.name || (formData.foto_url ? "Cambiar foto" : "Seleccionar foto")}
+                <input hidden type="file" name="foto_file" accept="image/*" onChange={handleFormChange} />
+              </Button>
+              {formData.foto_url && !formData.foto_file && (
+                <Typography variant="caption">
+                  Foto actual: <ProtectedFileLink url={formData.foto_url}>ver</ProtectedFileLink>
+                </Typography>
+              )}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>
