@@ -8,6 +8,7 @@ import ProfesoresCrud from "./pages/ProfesoresCrud";
 import DatosProfesor from "./pages/DatosProfesor";
 import AsignacionesProfesor from "./pages/AsignacionesProfesor";
 import CredencialesProfesor from "./pages/CredencialesProfesor";
+import UsuariosCrud from "./pages/UsuariosCrud";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<ProfesoresCrud />} />
               <Route path="/dependencias" element={<DependenciasCrud />} />
+              <Route path="/usuarios" element={<UsuariosCrud />} />
               <Route path="/profesores" element={<ProfesoresCrud />} />
               <Route path="/profesores/:id/datos" element={<DatosProfesor />} />
               <Route

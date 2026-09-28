@@ -1,3 +1,27 @@
+### Usuarios
+#### Acceso al módulo de usuarios
+
+Todas las rutas de `/api/usuarios` requieren un Firebase ID token y además el usuario autenticado debe tener permiso `ADMINISTRADOR` o `SISTEMAS`. Los demás permisos reciben `403 Forbidden`.
+
+#### Campos del usuario
+
+| Campo | Tipo | Requerido | DescripciÃ³n |
+|---|---|---:|---|
+| `id` | `string` | Respuesta | ID del documento en Firestore. |
+| `email` | `string` | POST | Correo vÃ¡lido; se guarda en minÃºsculas y sin espacios. |
+| `permiso` | `string` | POST | `ADMINISTRADOR`, `LECTURA`, `SISTEMAS`, `EDITOR`, `DIRECTOR ESCUELA`, `DIRECTOR OFICINA` o `PRESIDENTE`. |
+| `estado` | `string` | No | `ACTIVO` o `INACTIVO`; por defecto `ACTIVO`. Solo los activos pueden autenticarse. |
+| `dependencia_actual` | `object` | Condicional | Obligatoria para directores. |
+| `dependencia_actual.escuela_o_oficina_id` | `string` | SÃ­ | ID de dependencia existente. |
+| `dependencia_actual.departamento_id` | `string` | No | ID de departamento existente. |
+| `dependencia_actual.seccion_id` | `string` | No | ID de secciÃ³n existente. |
+| `dependencia_actual.ancestros` | `string[]` | No | IDs de dependencias superiores; por defecto `[]`. |
+| `createdAt` | ISO 8601 | Respuesta | Fecha de creaciÃ³n, generada por el backend. |
+| `updatedAt` | ISO 8601 | Respuesta | Fecha de Ãºltima actualizaciÃ³n. |
+| `lastLoginAt` | ISO 8601 | Respuesta | Fecha inicial de registro. |
+
+`dependencia_actual` es obligatoria para `DIRECTOR ESCUELA` y `DIRECTOR OFICINA`. Todos sus IDs deben existir en `dependencias`.
+
 ### 🏛️ Dependencias
 
 Las dependencias tienen jerarquía: `ESCUELA/OFICINA → DEPARTAMENTO → SECCION`. El campo `padre_id` define el nodo padre; el servidor calcula `ancestros` automáticamente.
@@ -1610,6 +1634,26 @@ corresponder a un evento ya existente.
   ]
 }
 ```
+## Firma del presidente
+
+Para agregar la firma existe una ruta exclusiva:
+
+```http
+PATCH /api/credenciales/:profesorId/eventos/:numeroEvento/firma
+```
+
+Body:
+
+```json
+{ "firma_presidente_url": "https://.../firma.png" }
+```
+
+El backend solo permite esta operación a usuarios con permiso `PRESIDENTE` y cuyo
+correo coincida con `correo_presidente` del evento. La ruta de generación de
+destinos de carga también rechaza `FIRMA_PRESIDENTE` para otros permisos. El
+frontend puede ocultar la opción de firma, pero estas validaciones del backend son
+las que garantizan la seguridad.
+
 
 Un registro `PREMIO` requiere `premio_no`; un registro `PATENTE` requiere
 `patente_no`. No se debe enviar el campo del otro tipo. Osea que ahora segun el tipo es premio_no o patente_no

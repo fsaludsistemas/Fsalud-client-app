@@ -51,6 +51,12 @@ export const deleteDependencia = async (id) => {
 };
 
 // Profesores API services
+export const getUsuarios = async () => (await apiClient.get("/usuarios")).data;
+export const getUsuarioById = async (id) => (await apiClient.get(`/usuarios/${id}`)).data;
+export const createUsuario = async (data) => (await apiClient.post("/usuarios", data)).data;
+export const updateUsuario = async (id, data) => (await apiClient.put(`/usuarios/${id}`, data)).data;
+export const deleteUsuario = async (id) => (await apiClient.delete(`/usuarios/${id}`)).data;
+
 export const getProfesores = async () => {
   const response = await apiClient.get("/profesores");
   return response.data;
@@ -166,6 +172,14 @@ export const createCredencialEvento = async (profesorId, data) => {
   const response = await apiClient.post(
     `/credenciales/${profesorId}/eventos`,
     data,
+  );
+  return response.data;
+};
+
+export const addFirmaPresidente = async (profesorId, numeroEvento, firmaPresidenteUrl) => {
+  const response = await apiClient.patch(
+    `/credenciales/${profesorId}/eventos/${numeroEvento}/firma`,
+    { firma_presidente_url: firmaPresidenteUrl },
   );
   return response.data;
 };
