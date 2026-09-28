@@ -234,7 +234,12 @@ const ProfesoresCrud = () => {
     setOpenDialog(false);
   };
 
-  const handleOpenDetail = (profId) => navigate(`/profesores/${profId}/datos`);
+  const handleOpenDetail = (profId) =>
+    navigate(
+      user?.permiso === "PRESIDENTE"
+        ? `/profesores/${profId}/credenciales`
+        : `/profesores/${profId}/datos`,
+    );
 
   const handleFormChange = (e) => {
     const value = e.target.type === "file" ? e.target.files?.[0] || null : e.target.value;
@@ -524,7 +529,7 @@ const ProfesoresCrud = () => {
                     </TableCell>
                     <TableCell align="center">
                       <Stack direction="row" spacing={1}>
-                        <IconButton
+                        {user?.permiso !== "PRESIDENTE" && <IconButton
                           size="small"
                           color="primary"
                           onClick={(event) => {
@@ -533,7 +538,7 @@ const ProfesoresCrud = () => {
                           }}
                         >
                           <EditIcon sx={{ fontSize: "medium", ml: 5 }} />
-                        </IconButton>
+                        </IconButton>}
                       </Stack>
                     </TableCell>
                   </TableRow>
