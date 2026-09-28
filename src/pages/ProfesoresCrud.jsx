@@ -242,7 +242,8 @@ const ProfesoresCrud = () => {
     );
 
   const handleFormChange = (e) => {
-    const value = e.target.type === "file" ? e.target.files?.[0] || null : e.target.value;
+    const value =
+      e.target.type === "file" ? e.target.files?.[0] || null : e.target.value;
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -384,7 +385,7 @@ const ProfesoresCrud = () => {
           Gestión de Profesores
         </Typography>
         <Stack direction="row" spacing={1}>
-          {canManageDependencies && (
+          {user?.permiso === "SISTEMAS" && (
             <Button
               variant="outlined"
               color="primary"
@@ -394,15 +395,27 @@ const ProfesoresCrud = () => {
               Gestionar Dependencias
             </Button>
           )}
-          {canManageDependencies && <Button component={Link} to="/usuarios" variant="outlined" color="secondary" startIcon={<PeopleIcon />}>Gestionar Usuarios</Button>}
-          {user?.permiso === "SISTEMAS" && <Button
-            variant="contained"
-            color="success"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreate}
-          >
-            Nuevo Profesor
-          </Button>}
+          {canManageDependencies && (
+            <Button
+              component={Link}
+              to="/usuarios"
+              variant="outlined"
+              color="secondary"
+              startIcon={<PeopleIcon />}
+            >
+              Gestionar Usuarios
+            </Button>
+          )}
+          {user?.permiso === "SISTEMAS" && (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreate}
+            >
+              Nuevo Profesor
+            </Button>
+          )}
         </Stack>
       </Stack>
 
@@ -529,16 +542,18 @@ const ProfesoresCrud = () => {
                     </TableCell>
                     <TableCell align="center">
                       <Stack direction="row" spacing={1}>
-                        {user?.permiso !== "PRESIDENTE" && <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenEdit(prof);
-                          }}
-                        >
-                          <EditIcon sx={{ fontSize: "medium", ml: 5 }} />
-                        </IconButton>}
+                        {user?.permiso !== "PRESIDENTE" && (
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenEdit(prof);
+                            }}
+                          >
+                            <EditIcon sx={{ fontSize: "medium", ml: 5 }} />
+                          </IconButton>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -750,13 +765,28 @@ const ProfesoresCrud = () => {
               <InputLabel sx={{ fontWeight: "bold", color: "#37474f" }}>
                 Foto del profesor (Opcional)
               </InputLabel>
-              <Button component="label" variant="outlined" fullWidth sx={{ justifyContent: "flex-start", py: 1.5 }}>
-                {formData.foto_file?.name || (formData.foto_url ? "Cambiar foto" : "Seleccionar foto")}
-                <input hidden type="file" name="foto_file" accept="image/*" onChange={handleFormChange} />
+              <Button
+                component="label"
+                variant="outlined"
+                fullWidth
+                sx={{ justifyContent: "flex-start", py: 1.5 }}
+              >
+                {formData.foto_file?.name ||
+                  (formData.foto_url ? "Cambiar foto" : "Seleccionar foto")}
+                <input
+                  hidden
+                  type="file"
+                  name="foto_file"
+                  accept="image/*"
+                  onChange={handleFormChange}
+                />
               </Button>
               {formData.foto_url && !formData.foto_file && (
                 <Typography variant="caption">
-                  Foto actual: <ProtectedFileLink url={formData.foto_url}>ver</ProtectedFileLink>
+                  Foto actual:{" "}
+                  <ProtectedFileLink url={formData.foto_url}>
+                    ver
+                  </ProtectedFileLink>
                 </Typography>
               )}
             </Stack>

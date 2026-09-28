@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   getProfesorById,
   getCredencialesByProfesor,
@@ -89,10 +89,12 @@ const ProfesorTabs = ({ value, onChange, profesorId, isPresident }) => (
     sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
   >
     {!isPresident && <>
-      <Tab label="Datos generales" value={`/profesores/${profesorId}/datos`} />
-      <Tab label="Asignaciones" value={`/profesores/${profesorId}/asignaciones`} />
+      <Tab component={Link} to={`/profesores/${profesorId}/datos`} label="Datos generales" value={`/profesores/${profesorId}/datos`} />
+      <Tab component={Link} to={`/profesores/${profesorId}/asignaciones`} label="Asignaciones" value={`/profesores/${profesorId}/asignaciones`} />
     </>}
     <Tab
+      component={Link}
+      to={`/profesores/${profesorId}/credenciales`}
       label="Credenciales"
       value={`/profesores/${profesorId}/credenciales`}
     />
