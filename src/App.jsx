@@ -9,6 +9,12 @@ import DatosProfesor from "./pages/DatosProfesor";
 import AsignacionesProfesor from "./pages/AsignacionesProfesor";
 import CredencialesProfesor from "./pages/CredencialesProfesor";
 import UsuariosCrud from "./pages/UsuariosCrud";
+import { useAuth } from "./context/AuthContext";
+
+function NonPresidentProfessorPage({ children }) {
+  const { user } = useAuth();
+  return user?.permiso === "PRESIDENTE" ? <Navigate to="/profesores" replace /> : children;
+}
 
 function App() {
   return (
@@ -25,10 +31,10 @@ function App() {
               <Route path="/dependencias" element={<DependenciasCrud />} />
               <Route path="/usuarios" element={<UsuariosCrud />} />
               <Route path="/profesores" element={<ProfesoresCrud />} />
-              <Route path="/profesores/:id/datos" element={<DatosProfesor />} />
+              <Route path="/profesores/:id/datos" element={<NonPresidentProfessorPage><DatosProfesor /></NonPresidentProfessorPage>} />
               <Route
                 path="/profesores/:id/asignaciones"
-                element={<AsignacionesProfesor />}
+                element={<NonPresidentProfessorPage><AsignacionesProfesor /></NonPresidentProfessorPage>}
               />
               <Route
                 path="/profesores/:id/credenciales"

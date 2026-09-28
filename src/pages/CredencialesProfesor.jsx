@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   getProfesorById,
   getCredencialesByProfesor,
@@ -82,18 +82,19 @@ const ProtectedFilePreview = ({ url, alt }) => {
   );
 };
 
-const ProfesorTabs = ({ value, onChange, profesorId }) => (
+const ProfesorTabs = ({ value, onChange, profesorId, isPresident }) => (
   <Tabs
     value={value}
     onChange={onChange}
     sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
   >
-    <Tab label="Datos generales" value={`/profesores/${profesorId}/datos`} />
+    {!isPresident && <>
+      <Tab component={Link} to={`/profesores/${profesorId}/datos`} label="Datos generales" value={`/profesores/${profesorId}/datos`} />
+      <Tab component={Link} to={`/profesores/${profesorId}/asignaciones`} label="Asignaciones" value={`/profesores/${profesorId}/asignaciones`} />
+    </>}
     <Tab
-      label="Asignaciones"
-      value={`/profesores/${profesorId}/asignaciones`}
-    />
-    <Tab
+      component={Link}
+      to={`/profesores/${profesorId}/credenciales`}
       label="Credenciales"
       value={`/profesores/${profesorId}/credenciales`}
     />
@@ -1286,7 +1287,15 @@ const CredencialesProfesor = () => {
         referencia_id: String(item.numero_evento),
       });
       const response = await addFirmaPresidente(id, item.numero_evento, url);
-      setCredenciales(response.credenciales || response);
+      setCredenciales((current) => {
+        if (response.credenciales) return response.credenciales;
+        const updatedEvents = (current?.eventos_credenciales || []).map((event) =>
+          event.numero_evento === item.numero_evento
+            ? { ...event, soporte: { ...event.soporte, firma_presidente_url: url } }
+            : event,
+        );
+        return { ...current, eventos_credenciales: updatedEvents };
+      });
       setSuccess("Firma del presidente agregada correctamente.");
     } catch (err) {
       setError(
@@ -1322,6 +1331,7 @@ const CredencialesProfesor = () => {
         value={`/profesores/${id}/credenciales`}
         onChange={(_, next) => navigate(next)}
         profesorId={id}
+        isPresident={isPresident}
       />
 
       {success && (

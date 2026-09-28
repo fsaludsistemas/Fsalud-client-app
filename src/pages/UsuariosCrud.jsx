@@ -39,7 +39,15 @@ const EMPTY = {
   estado: "ACTIVO",
   dependencyId: "",
 };
-const PERMISOS = ["SISTEMAS", "ADMINISTRADOR", "PRESIDENTE", "LECTURA"];
+const PERMISOS = [
+  "ADMINISTRADOR",
+  "LECTURA",
+  "SISTEMAS",
+  "EDITOR",
+  "DIRECTOR ESCUELA",
+  "DIRECTOR OFICINA",
+  "PRESIDENTE",
+];
 
 export default function UsuariosCrud() {
   const navigate = useNavigate();
