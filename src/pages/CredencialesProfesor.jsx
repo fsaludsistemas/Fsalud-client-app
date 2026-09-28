@@ -9,7 +9,9 @@ import {
   getProximoEvento,
   getDocentePeriodos,
   uploadStorageFile,
+  addFirmaPresidente,
 } from "../api/apiClient";
+import { useAuth } from "../context/AuthContext";
 import {
   Box,
   Tabs,
@@ -48,6 +50,37 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DetailProfesor from "../components/DetailProfesor";
 import ProtectedFileLink from "../components/ProtectedFileLink";
+import { fetchProtectedFile } from "../utils/protectedFile";
+
+const ProtectedFilePreview = ({ url, alt }) => {
+  const [src, setSrc] = useState("");
+  useEffect(() => {
+    let active = true;
+    fetchProtectedFile(url)
+      .then((value) => {
+        if (active) setSrc(value);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [url]);
+  return src ? (
+    <Box
+      component="img"
+      src={src}
+      alt={alt}
+      sx={{
+        maxWidth: 130,
+        maxHeight: 55,
+        objectFit: "contain",
+        display: "block",
+      }}
+    />
+  ) : (
+    <Typography variant="caption">Cargando…</Typography>
+  );
+};
 
 const ProfesorTabs = ({ value, onChange, profesorId }) => (
   <Tabs
@@ -163,14 +196,6 @@ const FACTORES = [
         type: "file",
         accept: "image/*,application/pdf",
         storageTipo: "ACTA_CCS",
-      },
-      {
-        name: "soporte_firma_presidente_url",
-        path: ["soporte", "firma_presidente_url"],
-        label: "Firma del presidente",
-        type: "file",
-        accept: "image/*,application/pdf",
-        storageTipo: "FIRMA_PRESIDENTE",
       },
       {
         name: "soporte_correo_presidente",
@@ -522,7 +547,11 @@ const STORAGE_FACTOR_BY_KEY = {
 
 FACTORES.forEach((factor) => {
   if (!STORAGE_FACTOR_BY_KEY[factor.key]) return;
-  factor.columns.push({ key: "url_soporte", label: "Soporte", type: "fileLink" });
+  factor.columns.push({
+    key: "url_soporte",
+    label: "Soporte",
+    type: "fileLink",
+  });
   factor.fields.push({
     name: "url_soporte",
     label: "Archivo de soporte",
@@ -775,20 +804,22 @@ const getFieldValue = (item, field) =>
 
 const preserveFileValues = (factor, item, previousItem) => {
   if (!previousItem) return item;
-  factor.fields.filter((field) => field.type === "file").forEach((field) => {
-    if (getFieldValue(item, field)) return;
-    const previousValue = getFieldValue(previousItem, field);
-    if (!previousValue) return;
-    if (!field.path) item[field.name] = previousValue;
-    else {
-      let target = item;
-      field.path.slice(0, -1).forEach((key) => {
-        target[key] ||= {};
-        target = target[key];
-      });
-      target[field.path[field.path.length - 1]] = previousValue;
-    }
-  });
+  factor.fields
+    .filter((field) => field.type === "file")
+    .forEach((field) => {
+      if (getFieldValue(item, field)) return;
+      const previousValue = getFieldValue(previousItem, field);
+      if (!previousValue) return;
+      if (!field.path) item[field.name] = previousValue;
+      else {
+        let target = item;
+        field.path.slice(0, -1).forEach((key) => {
+          target[key] ||= {};
+          target = target[key];
+        });
+        target[field.path[field.path.length - 1]] = previousValue;
+      }
+    });
   return item;
 };
 
@@ -798,6 +829,64 @@ const EVENT_SCORE_FACTORS = [
   { key: "experiencia_calificada", label: "Experiencia" },
   { key: "productividad_academica", label: "Productividad" },
 ];
+
+const getEventFactorItems = (credenciales, key, eventNumber) => {
+  const sources = {
+    titulos_universitarios: ["titulos_pregrado", "titulos_posgrado"],
+    categoria: ["categoria"],
+    experiencia_calificada: ["exp_tiempo_parcial", "exp_hora_catedra"],
+    productividad_academica: ["productividad"],
+  };
+  return (sources[key] || []).flatMap((source) => getItems(credenciales, source)).filter((entry) => String(entry.evento_no) === String(eventNumber));
+};
+
+const getEventFactorDetails = (credenciales, key, eventNumber) => {
+  const relationByFactor = {
+    titulos_universitarios: "evento_no",
+    categoria: "inclusion_no",
+    experiencia_calificada: "inclusion_no",
+    productividad_academica: "inclusion_no",
+    premios_y_patentes: "evento_no",
+    docencia_destacada: "evento_no",
+    extension_destacada: "evento_no",
+  };
+  const matches = (factorKey, relation = relationByFactor[factorKey] || "evento_no") => {
+    return getItems(credenciales, factorKey).filter((entry) => String(entry[relation]) === String(eventNumber));
+  };
+  if (key === "titulos_universitarios") return { pregrado: matches("titulos_pregrado"), posgrado: matches("titulos_posgrado") };
+  if (key === "experiencia_calificada") return { tiempo_parcial: matches("exp_tiempo_parcial"), hora_catedra: matches("exp_hora_catedra") };
+  if (key === "categoria") return { categoria: matches("categoria") };
+  if (key === "productividad_academica") return {
+    productividad_academica: matches("productividad", "inclusion_no"),
+    docencia_destacada: matches("docencia", "evento_no"),
+    extension_destacada: matches("extension", "evento_no"),
+    premios_y_patentes: matches("premios_patentes", "evento_no"),
+  };
+  return { registros: getEventFactorItems(credenciales, key, eventNumber) };
+};
+
+const prettyField = (key) => key.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+const FactorDetails = ({ details }) => (
+  <Stack spacing={2} sx={{ mt: 2 }}>
+    {Object.entries(details).map(([section, records]) => (
+      <Paper key={section} variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>{prettyField(section)}</Typography>
+        {!records.length ? <Typography color="text.secondary">No hay datos para este factor en este evento.</Typography> : (
+          <Stack spacing={1.5}>{records.map((record, index) => (
+            <Paper key={record.id || index} variant="outlined" sx={{ p: 1.5, bgcolor: "white" }}>
+              <Stack spacing={0.5}>{Object.entries(record).filter(([key]) => key !== "id").map(([key, value]) => (
+                <Stack key={key} direction={{ xs: "column", sm: "row" }} spacing={1}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 170 }}>{prettyField(key)}:</Typography>
+                  <Typography variant="body2" sx={{ wordBreak: "break-word" }}>{typeof value === "object" && value !== null ? Object.values(value).join(", ") : String(value ?? "—")}</Typography>
+                </Stack>
+              ))}</Stack>
+            </Paper>
+          ))}</Stack>
+        )}
+      </Paper>
+    ))}
+  </Stack>
+);
 
 const getFactorAccumulatedPoints = (factor, items) => {
   if (!factor.accumulatedKey || items.length === 0) return null;
@@ -825,6 +914,8 @@ const getEventsSummaryPoints = (resumen) => {
 const CredencialesProfesor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isPresident = user?.permiso === "PRESIDENTE";
   const [profesor, setProfesor] = useState(null);
   const [credenciales, setCredenciales] = useState(null);
   const [docentePeriodos, setDocentePeriodos] = useState([]);
@@ -843,6 +934,8 @@ const CredencialesProfesor = () => {
   const [pendingEventFactors, setPendingEventFactors] = useState([]);
   const [editingPendingIndex, setEditingPendingIndex] = useState(null);
   const [nextEventNumber, setNextEventNumber] = useState(null);
+  const [signingEvent, setSigningEvent] = useState(null);
+  const [factorInfo, setFactorInfo] = useState(null);
 
   const selectedFactor = useMemo(
     () => FACTORES.find((factor) => factor.key === selectedFactorKey),
@@ -948,7 +1041,8 @@ const CredencialesProfesor = () => {
   };
 
   const handleFormChange = (e) => {
-    const value = e.target.type === "file" ? e.target.files?.[0] || null : e.target.value;
+    const value =
+      e.target.type === "file" ? e.target.files?.[0] || null : e.target.value;
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: value,
@@ -964,8 +1058,13 @@ const CredencialesProfesor = () => {
         profesor_id: id,
         file,
         tipo: field.storageTipo || "SOPORTE_CREDENCIAL",
-        factor: field.storageFactor || STORAGE_FACTOR_BY_KEY[factor.key] || "eventos_credenciales",
-        referencia_id: String(item.id || eventData?.numero_evento || nextEventNumber || "nuevo"),
+        factor:
+          field.storageFactor ||
+          STORAGE_FACTOR_BY_KEY[factor.key] ||
+          "eventos_credenciales",
+        referencia_id: String(
+          item.id || eventData?.numero_evento || nextEventNumber || "nuevo",
+        ),
       });
       if (field.path) {
         let target = nextItem;
@@ -1067,7 +1166,11 @@ const CredencialesProfesor = () => {
         const action = e.nativeEvent.submitter?.value || "finalize";
 
         if (action === "finalize") {
-          if (!window.confirm("¿Está seguro de que desea guardar y finalizar el evento?")) {
+          if (
+            !window.confirm(
+              "¿Está seguro de que desea guardar y finalizar el evento?",
+            )
+          ) {
             return;
           }
         }
@@ -1077,7 +1180,11 @@ const CredencialesProfesor = () => {
           editingPendingIndex === null
             ? null
             : pendingEventFactors[editingPendingIndex]?.item;
-        factorItem = preserveFileValues(selectedFactor, factorItem, previousPending);
+        factorItem = preserveFileValues(
+          selectedFactor,
+          factorItem,
+          previousPending,
+        );
         factorItem = await uploadFiles(selectedFactor, factorItem);
         const nextFactor = { factorKey: selectedFactor.key, item: factorItem };
         const nextFactors =
@@ -1159,6 +1266,38 @@ const CredencialesProfesor = () => {
     }
   };
 
+  const canSignEvent = (item) =>
+    isPresident &&
+    !item.soporte?.firma_presidente_url &&
+    user?.email?.toLowerCase() ===
+      item.soporte?.correo_presidente?.toLowerCase();
+
+  const handleSignEvent = async (item, file) => {
+    if (!file || !canSignEvent(item)) return;
+    setError("");
+    setSuccess("");
+    setSigningEvent(item.numero_evento);
+    try {
+      const url = await uploadStorageFile({
+        profesor_id: id,
+        file,
+        tipo: "FIRMA_PRESIDENTE",
+        factor: "eventos_credenciales",
+        referencia_id: String(item.numero_evento),
+      });
+      const response = await addFirmaPresidente(id, item.numero_evento, url);
+      setCredenciales(response.credenciales || response);
+      setSuccess("Firma del presidente agregada correctamente.");
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "No se pudo agregar la firma del presidente.",
+      );
+    } finally {
+      setSigningEvent(null);
+    }
+  };
+
   const resumen = credenciales?.resumen_puntos;
 
   return (
@@ -1210,7 +1349,9 @@ const CredencialesProfesor = () => {
           )}
 
           {FACTORES.map((factor) => {
-            const items = getItems(credenciales, factor.key);
+            const items = factor.key === "eventos_credenciales"
+              ? [...getItems(credenciales, factor.key)].sort((a, b) => Number(b.numero_evento || 0) - Number(a.numero_evento || 0))
+              : getItems(credenciales, factor.key);
             const group = FACTOR_GROUPS.find((entry) =>
               entry.keys.includes(factor.key),
             );
@@ -1295,21 +1436,21 @@ const CredencialesProfesor = () => {
                       >
                         {items.length} registro{items.length === 1 ? "" : "s"}
                       </Typography>
-                      {factor.key === "eventos_credenciales" && (
-                        <Button
-                          size="small"
-                          variant="contained"
-                          
-                          startIcon={<AddIcon />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenCreate(factor.key);
-                          }}
-                          sx={{ flexShrink: 0 }}
-                        >
-                          Agregar
-                        </Button>
-                      )}
+                      {factor.key === "eventos_credenciales" &&
+                        !isPresident && (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenCreate(factor.key);
+                            }}
+                            sx={{ flexShrink: 0 }}
+                          >
+                            Agregar
+                          </Button>
+                        )}
                     </Stack>
                   </AccordionSummary>
                   <AccordionDetails>
@@ -1361,19 +1502,44 @@ const CredencialesProfesor = () => {
                                   <Table size="small" sx={{ minWidth: 900 }}>
                                     <TableHead sx={{ bgcolor: "#f5f5f5" }}>
                                       <TableRow>
-                                        <TableCell sx={{ fontWeight: "bold" }}>
+                                        <TableCell
+                                          sx={{
+                                            fontWeight: "bold",
+                                            verticalAlign: "top",
+                                          }}
+                                        >
                                           Factores del puntaje
                                         </TableCell>
-                                        <TableCell sx={{ fontWeight: "bold" }}>
+                                        <TableCell
+                                          sx={{
+                                            fontWeight: "bold",
+                                            verticalAlign: "top",
+                                          }}
+                                        >
                                           Puntos del evento
                                         </TableCell>
-                                        <TableCell sx={{ fontWeight: "bold" }}>
+                                        <TableCell
+                                          sx={{
+                                            fontWeight: "bold",
+                                            verticalAlign: "top",
+                                          }}
+                                        >
                                           Acumulado del evento
                                         </TableCell>
-                                        <TableCell sx={{ fontWeight: "bold" }}>
+                                        <TableCell
+                                          sx={{
+                                            fontWeight: "bold",
+                                            verticalAlign: "top",
+                                          }}
+                                        >
                                           Acta CCS
                                         </TableCell>
-                                        <TableCell sx={{ fontWeight: "bold" }}>
+                                        <TableCell
+                                          sx={{
+                                            fontWeight: "bold",
+                                            verticalAlign: "top",
+                                          }}
+                                        >
                                           Firma presidente
                                         </TableCell>
                                         <TableCell
@@ -1386,21 +1552,39 @@ const CredencialesProfesor = () => {
                                     </TableHead>
                                     <TableBody>
                                       <TableRow hover>
-                                        <TableCell>
-                                          <Stack spacing={0.75}>
+                                        <TableCell
+                                          sx={{ verticalAlign: "top" }}
+                                        >
+                                          <Stack spacing={0.5}>
                                             {EVENT_SCORE_FACTORS.map(
                                               (scoreFactor) => (
-                                                <Typography
+                                                <Button
                                                   key={scoreFactor.key}
-                                                  variant="body2"
+                                                  variant="text"
+                                                  size="small"
+                                                  sx={{
+                                                    justifyContent:
+                                                      "flex-start",
+                                                    minHeight: 24,
+                                                    p: 0,
+                                                    textTransform: "none",
+                                                  }}
+                                                  onClick={() =>
+                                                    setFactorInfo({
+                                                      event: item,
+                                                      factor: scoreFactor,
+                                                    })
+                                                  }
                                                 >
                                                   {scoreFactor.label}
-                                                </Typography>
+                                                </Button>
                                               ),
                                             )}
                                           </Stack>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell
+                                          sx={{ verticalAlign: "top" }}
+                                        >
                                           <Stack spacing={0.75}>
                                             {EVENT_SCORE_FACTORS.map(
                                               (scoreFactor) => (
@@ -1425,7 +1609,9 @@ const CredencialesProfesor = () => {
                                             </Typography>
                                           </Stack>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell
+                                          sx={{ verticalAlign: "top" }}
+                                        >
                                           <Stack spacing={0.75}>
                                             {EVENT_SCORE_FACTORS.map(
                                               (scoreFactor) => (
@@ -1451,36 +1637,86 @@ const CredencialesProfesor = () => {
                                             </Typography>
                                           </Stack>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell
+                                          sx={{ verticalAlign: "top" }}
+                                        >
                                           {item.soporte?.acta_ccs || "—"}
+                                          {item.soporte?.url_documento_acta && (
+                                            <Box>
+                                              <ProtectedFileLink
+                                                url={
+                                                  item.soporte
+                                                    .url_documento_acta
+                                                }
+                                              >
+                                                Ver acta
+                                              </ProtectedFileLink>
+                                            </Box>
+                                          )}
                                         </TableCell>
                                         <TableCell>
                                           {item.soporte
                                             ?.firma_presidente_url ? (
-                                            <ProtectedFileLink
-                                              url={item.soporte.firma_presidente_url}
-                                            >
-                                              Ver firma
-                                            </ProtectedFileLink>
+                                            <ProtectedFilePreview
+                                              url={
+                                                item.soporte
+                                                  .firma_presidente_url
+                                              }
+                                              alt="Firma del presidente"
+                                            />
                                           ) : (
                                             "—"
                                           )}
                                         </TableCell>
-                                        <TableCell align="center">
-                                          <IconButton
-                                            size="small"
-                                            color="primary"
-                                            title="Editar evento"
-                                            onClick={() =>
-                                              handleOpenEdit(
-                                                factor.key,
-                                                item,
-                                                index,
-                                              )
-                                            }
-                                          >
-                                            <EditIcon fontSize="small" />
-                                          </IconButton>
+                                        <TableCell
+                                          align="center"
+                                          sx={{ verticalAlign: "top" }}
+                                        >
+                                          {!isPresident && (
+                                            <IconButton
+                                              size="small"
+                                              color="primary"
+                                              title="Editar evento"
+                                              onClick={() =>
+                                                handleOpenEdit(
+                                                  factor.key,
+                                                  item,
+                                                  index,
+                                                )
+                                              }
+                                            >
+                                              <EditIcon fontSize="small" />
+                                            </IconButton>
+                                          )}
+                                          {canSignEvent(item) && (
+                                            <Button
+                                              component="label"
+                                              size="small"
+                                              variant="outlined"
+                                              disabled={
+                                                signingEvent ===
+                                                item.numero_evento
+                                              }
+                                            >
+                                              {signingEvent ===
+                                              item.numero_evento ? (
+                                                <CircularProgress size={18} />
+                                              ) : (
+                                                "Agregar firma"
+                                              )}
+                                              <input
+                                                hidden
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) =>
+                                                  handleSignEvent(
+                                                    item,
+                                                    e.target.files?.[0],
+                                                  )
+                                                }
+                                              />
+                                            </Button>
+                                          )}
                                         </TableCell>
                                       </TableRow>
                                     </TableBody>
@@ -1542,40 +1778,42 @@ const CredencialesProfesor = () => {
                                     </TableCell>
                                   ))}
                                   <TableCell align="center">
-                                    <Stack
-                                      direction="row"
-                                      spacing={1}
-                                      justifyContent="center"
-                                    >
-                                      <IconButton
-                                        size="small"
-                                        color="primary"
-                                        title="Editar registro"
-                                        onClick={() =>
-                                          handleOpenEdit(
-                                            factor.key,
-                                            item,
-                                            index,
-                                          )
-                                        }
+                                    {!isPresident && (
+                                      <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        justifyContent="center"
                                       >
-                                        <EditIcon fontSize="small" />
-                                      </IconButton>
-                                      <IconButton
-                                        size="small"
-                                        color="error"
-                                        title="Eliminar registro"
-                                        onClick={() =>
-                                          handleDeleteItem(
-                                            factor.key,
-                                            item,
-                                            index,
-                                          )
-                                        }
-                                      >
-                                        <DeleteIcon fontSize="small" />
-                                      </IconButton>
-                                    </Stack>
+                                        <IconButton
+                                          size="small"
+                                          color="primary"
+                                          title="Editar registro"
+                                          onClick={() =>
+                                            handleOpenEdit(
+                                              factor.key,
+                                              item,
+                                              index,
+                                            )
+                                          }
+                                        >
+                                          <EditIcon fontSize="small" />
+                                        </IconButton>
+                                        <IconButton
+                                          size="small"
+                                          color="error"
+                                          title="Eliminar registro"
+                                          onClick={() =>
+                                            handleDeleteItem(
+                                              factor.key,
+                                              item,
+                                              index,
+                                            )
+                                          }
+                                        >
+                                          <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                      </Stack>
+                                    )}
                                   </TableCell>
                                 </TableRow>
                               ))
@@ -1721,18 +1959,37 @@ const CredencialesProfesor = () => {
                   </Box>
                 ) : field.type === "file" ? (
                   <Box key={field.name}>
-                    <InputLabel sx={{ fontWeight: "bold", color: "#37474f", mb: 1 }}>
+                    <InputLabel
+                      sx={{ fontWeight: "bold", color: "#37474f", mb: 1 }}
+                    >
                       {field.label}
                     </InputLabel>
-                    <Button component="label" variant="outlined" fullWidth sx={{ justifyContent: "flex-start", py: 1.5 }}>
+                    <Button
+                      component="label"
+                      variant="outlined"
+                      fullWidth
+                      sx={{ justifyContent: "flex-start", py: 1.5 }}
+                    >
                       {formData[field.name]?.name || "Seleccionar archivo"}
-                      <input hidden type="file" name={field.name} accept={field.accept} onChange={handleFormChange} />
+                      <input
+                        hidden
+                        type="file"
+                        name={field.name}
+                        accept={field.accept}
+                        onChange={handleFormChange}
+                      />
                     </Button>
-                    {getFieldValue(editingItem, field) && !formData[field.name] && (
-                      <Typography variant="caption">
-                        Archivo actual: <ProtectedFileLink url={getFieldValue(editingItem, field)}>ver</ProtectedFileLink>
-                      </Typography>
-                    )}
+                    {getFieldValue(editingItem, field) &&
+                      !formData[field.name] && (
+                        <Typography variant="caption">
+                          Archivo actual:{" "}
+                          <ProtectedFileLink
+                            url={getFieldValue(editingItem, field)}
+                          >
+                            ver
+                          </ProtectedFileLink>
+                        </Typography>
+                      )}
                   </Box>
                 ) : field.type === "email" ? (
                   <Box key={field.name}>
@@ -1869,6 +2126,53 @@ const CredencialesProfesor = () => {
             )}
           </DialogActions>
         </form>
+      </Dialog>
+      <Dialog
+        open={Boolean(factorInfo)}
+        onClose={() => setFactorInfo(null)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>
+          {factorInfo?.factor.label} — información del evento
+        </DialogTitle>
+        <DialogContent dividers>
+          {factorInfo && (
+            <Stack spacing={1}>
+              <Typography>
+                Evento N.° {factorInfo.event.numero_evento}
+              </Typography>
+              <Typography>
+                Puntos del evento:{" "}
+                {formatPts(
+                  factorInfo.event.factores_puntaje?.[factorInfo.factor.key]
+                    ?.puntos_evento,
+                ) || "—"}
+              </Typography>
+              <Typography>
+                Acumulado:{" "}
+                {formatPts(
+                  factorInfo.event.factores_puntaje?.[factorInfo.factor.key]
+                    ?.total_acumulado,
+                ) || "—"}
+              </Typography>
+              <Box
+                component="div"
+              >
+                <FactorDetails details={getEventFactorDetails(
+                    credenciales,
+                    factorInfo.factor.key,
+                    factorInfo.event.numero_evento,
+                )}
+                />{/*
+                ) || "Sin información detallada."}
+                */}</Box>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFactorInfo(null)}>Cerrar</Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

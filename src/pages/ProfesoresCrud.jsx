@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   getProfesores,
@@ -40,6 +40,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
+import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import ProtectedFileLink from "../components/ProtectedFileLink";
 
@@ -388,14 +389,15 @@ const ProfesoresCrud = () => {
               Gestionar Dependencias
             </Button>
           )}
-          <Button
+          {canManageDependencies && <Button component={Link} to="/usuarios" variant="outlined" color="secondary" startIcon={<PeopleIcon />}>Gestionar Usuarios</Button>}
+          {user?.permiso === "SISTEMAS" && <Button
             variant="contained"
             color="success"
             startIcon={<AddIcon />}
             onClick={handleOpenCreate}
           >
             Nuevo Profesor
-          </Button>
+          </Button>}
         </Stack>
       </Stack>
 
