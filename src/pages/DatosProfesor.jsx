@@ -8,7 +8,9 @@ import {
   createDocentePeriodo,
   updateDocentePeriodo,
   deleteDocentePeriodo,
+  updateProfesor,
 } from "../api/apiClient";
+import { useAuth } from "../context/AuthContext";
 import {
   Box,
   Tabs,
@@ -106,6 +108,7 @@ const ESTADOS = ["ACTIVO", "INACTIVO"];
 const DatosProfesor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [profesor, setProfesor] = useState(null);
   const [dependencias, setDependencias] = useState([]);
   const [periodos, setPeriodos] = useState([]);
@@ -117,6 +120,20 @@ const DatosProfesor = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDocentePeriodo, setEditingDocentePeriodo] = useState(null);
   const [docenteForm, setDocenteForm] = useState(DOCENTE_DEFAULT);
+
+  // Edit datos básicos
+  const [openEditDatos, setOpenEditDatos] = useState(false);
+  const [editDatosForm, setEditDatosForm] = useState({
+    lugar_nacimiento: "",
+    fecha_nacimiento: "",
+    fecha_vinculacion: "",
+  });
+  const [editDatosError, setEditDatosError] = useState("");
+  const [editDatosSuccess, setEditDatosSuccess] = useState("");
+  const [savingDatos, setSavingDatos] = useState(false);
+
+  const canEditDatos =
+    user?.permiso === "ADMINISTRADOR" || user?.permiso === "SISTEMAS";
 
   const fetchData = async () => {
     setLoading(true);
@@ -262,15 +279,62 @@ const DatosProfesor = () => {
     }
   };
 
+  const handleOpenEditDatos = () => {
+    setEditDatosForm({
+      lugar_nacimiento: profesor?.lugar_nacimiento || "",
+      fecha_nacimiento: profesor?.fecha_nacimiento
+        ? String(profesor.fecha_nacimiento).slice(0, 10)
+        : "",
+      fecha_vinculacion: profesor?.fecha_vinculacion
+        ? String(profesor.fecha_vinculacion).slice(0, 10)
+        : "",
+    });
+    setEditDatosError("");
+    setEditDatosSuccess("");
+    setOpenEditDatos(true);
+  };
+
+  const handleSaveEditDatos = async (e) => {
+    e.preventDefault();
+    setEditDatosError("");
+    setSavingDatos(true);
+    try {
+      const payload = {
+        lugar_nacimiento: editDatosForm.lugar_nacimiento || undefined,
+        fecha_nacimiento: editDatosForm.fecha_nacimiento
+          ? `${editDatosForm.fecha_nacimiento}T00:00:00Z`
+          : undefined,
+        fecha_vinculacion: editDatosForm.fecha_vinculacion
+          ? `${editDatosForm.fecha_vinculacion}T00:00:00Z`
+          : undefined,
+      };
+      await updateProfesor(id, payload);
+      setEditDatosSuccess("Datos actualizados correctamente.");
+      await fetchData();
+      setOpenEditDatos(false);
+    } catch (err) {
+      console.error(err);
+      setEditDatosError(
+        err.response?.data?.message || "No fue posible actualizar los datos.",
+      );
+    } finally {
+      setSavingDatos(false);
+    }
+  };
+
   return (
     <Box>
       <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
         <IconButton onClick={() => navigate("/profesores")} color="primary">
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h4" sx={{ fontWeight: "bold", color: "#37474f" }}>
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: "bold", color: "#37474f", flexGrow: 1 }}
+        >
           Detalle del Profesor
         </Typography>
+        
       </Stack>
 
       {!loading && !error && profesor && (
@@ -296,10 +360,23 @@ const DatosProfesor = () => {
       )}
 
       {!loading && !error && profesor && (
-        <Paper sx={{ p: 3, borderRadius: 3 }}>
+        <Paper sx={{ p: 3, borderRadius: 3, position: "relative" }}>
+          {canEditDatos && (
+            <IconButton
+              color="primary"
+              title="Editar datos del profesor"
+              onClick={handleOpenEditDatos}
+              size="small"
+              sx={{ position: "absolute", top: 8, right: 8 }}
+            >
+              <EditIcon />
+            </IconButton>
+          )}
           <Stack spacing={3}>
             <Box>
+
               <Grid container spacing={2}>
+                
                 <DetailRow
                   label="Email institucional"
                   value={correoCompleto}
@@ -348,7 +425,7 @@ const DatosProfesor = () => {
                 />
                 <DetailRow
                   label="Fecha de nacimiento"
-                  value={profesor.fecha_nacimiento}
+                  value={profesor.fecha_nacimiento ? String(profesor.fecha_nacimiento).slice(0, 10) : "—"}
                 />
               </Grid>
             </Box>
@@ -356,7 +433,7 @@ const DatosProfesor = () => {
               <Grid container spacing={2}>
                 <DetailRow
                   label="Fecha de vinculación"
-                  value={profesor.fecha_vinculacion}
+                  value={profesor.fecha_vinculacion ? String(profesor.fecha_vinculacion).slice(0, 10) : "—"}
                 />
               </Grid>
             </Box>
@@ -634,6 +711,78 @@ const DatosProfesor = () => {
             </Button>
             <Button type="submit" variant="contained">
               {editingDocentePeriodo ? "Guardar cambios" : "Crear"}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Dialog editar datos básicos */}
+      <Dialog
+        open={openEditDatos}
+        onClose={() => setOpenEditDatos(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <form onSubmit={handleSaveEditDatos}>
+          <DialogTitle sx={{ fontWeight: "bold", color: "#37474f" }}>
+            Editar datos del profesor
+          </DialogTitle>
+          <DialogContent dividers>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              {editDatosError && (
+                <Alert severity="error" onClose={() => setEditDatosError("")}>
+                  {editDatosError}
+                </Alert>
+              )}
+              <Typography sx={{ fontWeight: "bold", color: "#37474f" }}>Lugar de nacimiento</Typography>
+              <TextField
+                value={editDatosForm.lugar_nacimiento}
+                onChange={(e) =>
+                  setEditDatosForm((prev) => ({
+                    ...prev,
+                    lugar_nacimiento: e.target.value,
+                  }))
+                }
+                fullWidth
+              />
+              <Typography sx={{ fontWeight: "bold", color: "#37474f" }} >Fecha de nacimiento</Typography>
+              <TextField
+                type="date"
+                value={editDatosForm.fecha_nacimiento}
+                onChange={(e) =>
+                  setEditDatosForm((prev) => ({
+                    ...prev,
+                    fecha_nacimiento: e.target.value,
+                  }))
+                }
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+              <Typography sx={{ fontWeight: "bold", color: "#37474f" }}>Fecha de vinculación</Typography>
+              <TextField
+                type="date"
+                value={editDatosForm.fecha_vinculacion}
+                onChange={(e) =>
+                  setEditDatosForm((prev) => ({
+                    ...prev,
+                    fecha_vinculacion: e.target.value,
+                  }))
+                }
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+              onClick={() => setOpenEditDatos(false)}
+              color="inherit"
+              disabled={savingDatos}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" variant="contained" disabled={savingDatos}>
+              {savingDatos ? "Guardando…" : "Guardar cambios"}
             </Button>
           </DialogActions>
         </form>
