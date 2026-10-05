@@ -377,11 +377,15 @@ const ProfesoresCrud = () => {
       depActual.seccion_id ||
       depActual.departamento_id ||
       depActual.escuela_o_oficina_id;
-    const dep = dependencias.find((d) => d.id === depId);
+    if (depId === undefined || depId === null || depId === "") return "-";
+
+    const dep = dependencias.find((d) => String(d.id) === String(depId));
+    if (!dep) return "-";
+
     const tipo = dep.tipo
-        ? dep.tipo.charAt(0).toUpperCase() + dep.tipo.slice(1).toLowerCase()
-        : "Dependencia";
-    return dep ? `${tipo} de ${dep.nombre}` : "-";
+      ? dep.tipo.charAt(0).toUpperCase() + dep.tipo.slice(1).toLowerCase()
+      : "Dependencia";
+    return `${tipo} de ${dep.nombre}`;
   };
 
   return (
