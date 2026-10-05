@@ -40,6 +40,11 @@ function App() {
                 path="/profesores/:id/credenciales"
                 element={<CredencialesProfesor />}
               />
+              {/* Alias para enlaces enviados por correo */}
+              <Route
+                path="/credenciales/:id"
+                element={<CredencialesProfesor />}
+              />
             </Route>
           </Route>
 

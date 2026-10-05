@@ -220,9 +220,13 @@ const ProfesoresCrud = () => {
         ? prof.email_institucional.replace(EMAIL_DOMAIN, "")
         : "",
       lugar_nacimiento: prof.lugar_nacimiento || "",
-      fecha_nacimiento: prof.fecha_nacimiento || "",
+      fecha_nacimiento: prof.fecha_nacimiento
+        ? String(prof.fecha_nacimiento).slice(0, 10)
+        : "",
       telefono: prof.telefono || "",
-      fecha_vinculacion: prof.fecha_vinculacion || "",
+      fecha_vinculacion: prof.fecha_vinculacion
+        ? String(prof.fecha_vinculacion).slice(0, 10)
+        : "",
       foto_url: prof.foto_url || "",
       foto_file: null,
     });
@@ -242,11 +246,15 @@ const ProfesoresCrud = () => {
     );
 
   const handleFormChange = (e) => {
-    const value =
+    let value =
       e.target.type === "file" ? e.target.files?.[0] || null : e.target.value;
+    // Si el usuario pegó/escribió el dominio completo en el campo email, lo quitamos
+    if (typeof value === "string" && value.includes("@correounivalle.edu.co")) {
+      value = value.replace(/@correounivalle\.edu\.co/g, "");
+    }
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: value,
       ...(e.target.type === "file" ? { [e.target.name]: value } : {}),
     });
   };
@@ -370,7 +378,10 @@ const ProfesoresCrud = () => {
       depActual.departamento_id ||
       depActual.escuela_o_oficina_id;
     const dep = dependencias.find((d) => d.id === depId);
-    return dep ? `${dep.nombre} (${dep.tipo})` : "-";
+    const tipo = dep.tipo
+        ? dep.tipo.charAt(0).toUpperCase() + dep.tipo.slice(1).toLowerCase()
+        : "Dependencia";
+    return dep ? `${tipo} de ${dep.nombre}` : "-";
   };
 
   return (
@@ -751,7 +762,7 @@ const ProfesoresCrud = () => {
               />
 
               <InputLabel sx={{ fontWeight: "bold", color: "#37474f" }}>
-                Fecha de Vinculacion
+                Fecha de Vinculacion (Opcional)
               </InputLabel>
               <TextField
                 name="fecha_vinculacion"

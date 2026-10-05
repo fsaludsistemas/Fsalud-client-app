@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, useLocation } from "react-router-dom";
 import {
   Box,
   Card,
@@ -36,12 +36,13 @@ const GoogleIcon = () => (
 const Login = () => {
   const { user, login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // If already logged in, redirect to home
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={location.state?.from || "/"} replace />;
   }
 
   const handleLogin = async () => {
@@ -49,7 +50,7 @@ const Login = () => {
     setSubmitting(true);
     try {
       await login();
-      navigate("/");
+      navigate(location.state?.from || "/", { replace: true });
     } catch (err) {
       setError(err.message || "Ocurrió un error al iniciar sesión.");
     } finally {

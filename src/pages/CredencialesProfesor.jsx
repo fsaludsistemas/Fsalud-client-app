@@ -867,25 +867,69 @@ const getEventFactorDetails = (credenciales, key, eventNumber) => {
 };
 
 const prettyField = (key) => key.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const formatFieldValue = (value) => {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "object") return Object.values(value).join(", ");
+  const str = String(value);
+  // Si parece una fecha ISO, mostrar solo la parte de fecha
+  if (/^\d{4}-\d{2}-\d{2}T/.test(str)) return str.slice(0, 10);
+  return str || "—";
+};
+
+// Construye la lista ordenada de campos a mostrar usando las columnas del factor si está disponible
+const getOrderedRecordEntries = (record, factorKey) => {
+  const factor = FACTORES.find((f) => f.key === factorKey);
+  const columns = factor?.columns || [];
+  const columnKeys = columns.map((c) => c.key);
+  const allKeys = [
+    ...columnKeys,
+    ...Object.keys(record).filter((k) => !columnKeys.includes(k) && k !== "id"),
+  ];
+  return allKeys
+    .filter((k) => k !== "id" && k in record)
+    .map((k) => {
+      const col = columns.find((c) => c.key === k);
+      return [k, record[k], col?.label || prettyField(k), col?.type];
+    });
+};
+
 const FactorDetails = ({ details }) => (
   <Stack spacing={2} sx={{ mt: 2 }}>
-    {Object.entries(details).map(([section, records]) => (
-      <Paper key={section} variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>{prettyField(section)}</Typography>
-        {!records.length ? <Typography color="text.secondary">No hay datos para este factor en este evento.</Typography> : (
-          <Stack spacing={1.5}>{records.map((record, index) => (
-            <Paper key={record.id || index} variant="outlined" sx={{ p: 1.5, bgcolor: "white" }}>
-              <Stack spacing={0.5}>{Object.entries(record).filter(([key]) => key !== "id").map(([key, value]) => (
-                <Stack key={key} direction={{ xs: "column", sm: "row" }} spacing={1}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 170 }}>{prettyField(key)}:</Typography>
-                  <Typography variant="body2" sx={{ wordBreak: "break-word" }}>{typeof value === "object" && value !== null ? Object.values(value).join(", ") : String(value ?? "—")}</Typography>
-                </Stack>
-              ))}</Stack>
-            </Paper>
-          ))}</Stack>
-        )}
-      </Paper>
-    ))}
+    {Object.entries(details).map(([section, records]) => {
+      // Mapear nombre de sección al factorKey correspondiente en FACTORES
+      const sectionToFactorKey = {
+        pregrado: "titulos_pregrado",
+        posgrado: "titulos_posgrado",
+        tiempo_parcial: "exp_tiempo_parcial",
+        hora_catedra: "exp_hora_catedra",
+        categoria: "categoria",
+        productividad_academica: "productividad",
+        docencia_destacada: "docencia",
+        extension_destacada: "extension",
+        premios_y_patentes: "premios_patentes",
+      };
+      const factorKey = sectionToFactorKey[section] || section;
+      return (
+        <Paper key={section} variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>{prettyField(section)}</Typography>
+          {!records.length ? <Typography color="text.secondary">No hay datos para este factor en este evento.</Typography> : (
+            <Stack spacing={1.5}>{records.map((record, index) => (
+              <Paper key={record.id || index} variant="outlined" sx={{ p: 1.5, bgcolor: "white" }}>
+                <Stack spacing={0.5}>{getOrderedRecordEntries(record, factorKey).map(([key, value, label, type]) => (
+                  <Stack key={key} direction={{ xs: "column", sm: "row" }} spacing={1}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 170 }}>{label}:</Typography>
+                    <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+                      {type === "date" ? (value ? String(value).slice(0, 10) : "—") : formatFieldValue(value)}
+                    </Typography>
+                  </Stack>
+                ))}</Stack>
+              </Paper>
+            ))}</Stack>
+          )}
+        </Paper>
+      );
+    })}
   </Stack>
 );
 
@@ -1042,8 +1086,12 @@ const CredencialesProfesor = () => {
   };
 
   const handleFormChange = (e) => {
-    const value =
+    let value =
       e.target.type === "file" ? e.target.files?.[0] || null : e.target.value;
+    // Si el campo es texto y el usuario pegó/escribió el dominio completo, lo quitamos
+    if (typeof value === "string" && value.includes("@correounivalle.edu.co")) {
+      value = value.replace(/@correounivalle\.edu\.co/g, "");
+    }
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: value,
@@ -2150,21 +2198,13 @@ const CredencialesProfesor = () => {
           {factorInfo && (
             <Stack spacing={1}>
               <Typography>
-                Evento N.° {factorInfo.event.numero_evento}
-              </Typography>
-              <Typography>
-                Puntos del evento:{" "}
-                {formatPts(
+                {`Evento N.° ${factorInfo.event.numero_evento} - Puntos del evento: ${formatPts(
                   factorInfo.event.factores_puntaje?.[factorInfo.factor.key]
                     ?.puntos_evento,
-                ) || "—"}
-              </Typography>
-              <Typography>
-                Acumulado:{" "}
-                {formatPts(
+                ) || "—"} - Acumulado: ${formatPts(
                   factorInfo.event.factores_puntaje?.[factorInfo.factor.key]
                     ?.total_acumulado,
-                ) || "—"}
+                ) || "—"}`}
               </Typography>
               <Box
                 component="div"
