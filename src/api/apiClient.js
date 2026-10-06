@@ -57,8 +57,13 @@ export const createUsuario = async (data) => (await apiClient.post("/usuarios", 
 export const updateUsuario = async (id, data) => (await apiClient.put(`/usuarios/${id}`, data)).data;
 export const deleteUsuario = async (id) => (await apiClient.delete(`/usuarios/${id}`)).data;
 
-export const getProfesores = async () => {
-  const response = await apiClient.get("/profesores");
+export const getProfesores = async ({ limit = 10, pageToken } = {}) => {
+  const response = await apiClient.get("/profesores", {
+    params: {
+      limit,
+      ...(pageToken ? { pageToken } : {}),
+    },
+  });
   return response.data;
 };
 
