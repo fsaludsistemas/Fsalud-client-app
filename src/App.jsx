@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { DependenciasProvider } from "./context/DependenciasContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
@@ -19,7 +20,8 @@ function NonPresidentProfessorPage({ children }) {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <DependenciasProvider>
+        <BrowserRouter>
         <Routes>
           {/* Public Route */}
           <Route path="/login" element={<Login />} />
@@ -51,7 +53,8 @@ function App() {
           {/* Catch-all route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </DependenciasProvider>
     </AuthProvider>
   );
 }

@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import {
   getProfesores,
   searchProfesores,
-  getDependencias,
   getDocentePeriodos,
   createProfesor,
   updateProfesor,
@@ -43,6 +42,7 @@ import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import ProtectedFileLink from "../components/ProtectedFileLink";
+import { useDependencias } from "../context/DependenciasContext";
 
 const TIPOS_IDENTIFICACION = ["CEDULA", "PASAPORTE", "TARJETA_IDENTIDAD"];
 const EMAIL_DOMAIN = "@correounivalle.edu.co";
@@ -51,11 +51,11 @@ const ALL_FILTER = "TODOS";
 const ProfesoresCrud = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dependencias } = useDependencias();
   const canManageDependencies = ["SISTEMAS", "ADMINISTRADOR"].includes(
     user?.permiso,
   );
   const [profesores, setProfesores] = useState([]);
-  const [dependencias, setDependencias] = useState([]);
   const [docentePeriodos, setDocentePeriodos] = useState([]);
   const [filters, setFilters] = useState({
     nivel: ALL_FILTER,
@@ -67,6 +67,13 @@ const ProfesoresCrud = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageToken, setPageToken] = useState("");
+  const [pageTokens, setPageTokens] = useState([]);
+  const [pagination, setPagination] = useState({
+    hasMore: false,
+    nextPageToken: "",
+  });
 
   // Dialog State
   const [openDialog, setOpenDialog] = useState(false);
@@ -88,16 +95,30 @@ const ProfesoresCrud = () => {
   const [formError, setFormError] = useState("");
 
   const fetchData = useCallback(
-    async (search = searchTerm) => {
+    async (search = searchTerm, token = pageToken) => {
       setLoading(true);
       try {
-        const [profData, depData, docentePeriodosData] = await Promise.all([
-          search.trim() ? searchProfesores(search.trim()) : getProfesores(),
-          getDependencias(),
+        const [profData, docentePeriodosData] = await Promise.all([
+          search.trim()
+            ? searchProfesores(search.trim())
+            : getProfesores({ limit: 10, pageToken: token }),
           getDocentePeriodos(),
         ]);
-        setProfesores(profData || []);
-        setDependencias(depData || []);
+        setProfesores(
+          search.trim()
+            ? Array.isArray(profData)
+              ? profData
+              : profData?.data || []
+            : profData?.data || [],
+        );
+        setPagination(
+          search.trim()
+            ? { hasMore: false, nextPageToken: "" }
+            : {
+                hasMore: Boolean(profData?.pagination?.hasMore),
+                nextPageToken: profData?.pagination?.nextPageToken || "",
+              },
+        );
         setDocentePeriodos(docentePeriodosData || []);
         setError("");
       } catch (err) {
@@ -107,7 +128,7 @@ const ProfesoresCrud = () => {
         setLoading(false);
       }
     },
-    [searchTerm],
+    [pageToken, searchTerm],
   );
 
   useEffect(() => {
@@ -175,6 +196,29 @@ const ProfesoresCrud = () => {
       ...current,
       [event.target.name]: event.target.value,
     }));
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+    setCurrentPage(1);
+    setPageToken("");
+    setPageTokens([]);
+  };
+
+  const handleNextPage = () => {
+    if (!pagination.hasMore || !pagination.nextPageToken) return;
+    setPageTokens((tokens) => [...tokens, pagination.nextPageToken]);
+    setCurrentPage((page) => page + 1);
+    setPageToken(pagination.nextPageToken);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage === 1) return;
+    const previousToken =
+      currentPage === 2 ? "" : pageTokens[currentPage - 3] || "";
+    setCurrentPage((page) => page - 1);
+    setPageToken(previousToken);
+    setPageTokens((tokens) => tokens.slice(0, -1));
   };
 
   const handleOpenCreate = () => {
@@ -323,10 +367,18 @@ const ProfesoresCrud = () => {
             referencia_id: String(editingProf.id),
           });
         }
-        await updateProfesor(editingProf.id, payload);
+        const updated = await updateProfesor(editingProf.id, payload);
+        setProfesores((current) =>
+          current.map((profesor) =>
+            String(profesor.id) === String(editingProf.id)
+              ? { ...profesor, ...(updated || payload) }
+              : profesor,
+          ),
+        );
         setSuccess("Profesor actualizado correctamente.");
       } else {
         const created = await createProfesor(payload);
+        let createdProfesor = created;
         if (formData.foto_file && created?.id) {
           const foto_url = await uploadStorageFile({
             profesor_id: created.id,
@@ -334,12 +386,14 @@ const ProfesoresCrud = () => {
             tipo: "FOTO_PROFESOR",
             referencia_id: String(created.id),
           });
-          await updateProfesor(created.id, { foto_url });
+          createdProfesor = await updateProfesor(created.id, { foto_url });
+        }
+        if (currentPage === 1 && !searchTerm.trim() && createdProfesor?.id) {
+          setProfesores((current) => [createdProfesor, ...current].slice(0, 10));
         }
         setSuccess("Profesor creado correctamente.");
       }
       setOpenDialog(false);
-      fetchData();
     } catch (err) {
       console.error(err);
       const apiMessage =
@@ -360,8 +414,10 @@ const ProfesoresCrud = () => {
     try {
       await deleteProfesor(id);
       setOpenDialog(false);
+      setProfesores((current) =>
+        current.filter((profesor) => String(profesor.id) !== String(id)),
+      );
       setSuccess("Profesor eliminado correctamente.");
-      fetchData();
     } catch (err) {
       console.error(err);
       const apiMessage =
@@ -450,7 +506,7 @@ const ProfesoresCrud = () => {
         <Stack spacing={2}>
           <TextField
             value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
+            onChange={handleSearchChange}
             placeholder="Buscar por nombres, apellidos o número de identificación"
             label="Buscar docente"
             fullWidth
@@ -577,6 +633,31 @@ const ProfesoresCrud = () => {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+      {!searchTerm.trim() && (
+        <Stack
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          spacing={2}
+          sx={{ mt: 2 }}
+        >
+          <Button
+            variant="outlined"
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1 || loading}
+          >
+            Anterior
+          </Button>
+          <Typography>Página {currentPage}</Typography>
+          <Button
+            variant="outlined"
+            onClick={handleNextPage}
+            disabled={!pagination.hasMore || loading}
+          >
+            Siguiente
+          </Button>
+        </Stack>
       )}
 
       {/* Dialog for Create/Edit */}

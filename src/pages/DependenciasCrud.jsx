@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  getDependencias,
   createDependencia,
   updateDependencia,
   deleteDependencia,
@@ -35,13 +34,13 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useDependencias } from "../context/DependenciasContext";
 
 const TIPOS_VALIDOS = ["ESCUELA", "OFICINA", "DEPARTAMENTO", "SECCION"];
 
 const DependenciasCrud = () => {
   const navigate = useNavigate();
-  const [dependencias, setDependencias] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { dependencias, loading, error: dependenciesError, refreshDependencias } = useDependencias();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
@@ -52,24 +51,6 @@ const DependenciasCrud = () => {
     padre_id: "",
   });
   const [formError, setFormError] = useState("");
-
-  const fetchDependencias = async () => {
-    setLoading(true);
-    try {
-      const data = await getDependencias();
-      setDependencias(data || []);
-      setError("");
-    } catch (err) {
-      console.error(err);
-      setError("Error al cargar las dependencias.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDependencias();
-  }, []);
 
   const handleOpenCreate = () => {
     setEditingDep(null);
@@ -143,7 +124,7 @@ const DependenciasCrud = () => {
         setSuccess("Dependencia creada correctamente.");
       }
       setOpenDialog(false);
-      fetchDependencias();
+      await refreshDependencias();
     } catch (err) {
       console.error(err);
       const apiMessage =
@@ -164,7 +145,7 @@ const DependenciasCrud = () => {
     try {
       await deleteDependencia(id);
       setSuccess("Dependencia eliminada correctamente.");
-      fetchDependencias();
+      await refreshDependencias();
     } catch (err) {
       console.error(err);
       const apiMessage =
