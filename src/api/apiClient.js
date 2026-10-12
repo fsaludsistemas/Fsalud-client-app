@@ -13,15 +13,15 @@ const apiClient = axios.create({
 // Interceptor to add the Firebase ID Token to every request
 apiClient.interceptors.request.use(
   async (config) => {
-    try {
-      const token = await getIdToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      // In case we request before authentication is fully resolved
-      console.debug("Request interceptor: no active session token found");
+    const token = await getIdToken();
+
+    if (!token) {
+      return Promise.reject(new Error("No hay usuario autenticado"));
     }
+
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+
     return config;
   },
   (error) => {
