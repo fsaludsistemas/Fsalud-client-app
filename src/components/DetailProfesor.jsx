@@ -13,8 +13,8 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import { getDependencias } from "../api/apiClient";
 import { fetchProtectedFile } from "../utils/protectedFile";
+import { useDependencias } from "../context/DependenciasContext";
 
 const getPeriodLabel = (docentePeriodo) =>
   docentePeriodo?.periodo?.periodo || docentePeriodo?.periodo_id || "";
@@ -36,20 +36,8 @@ const getPeriodOrder = (docentePeriodo) => {
 };
 
 const DetailProfesor = ({ profesor, docentePeriodos = [] }) => {
-  const [dependencias, setDependencias] = useState([]);
+  const { dependencias } = useDependencias();
   const [fotoSrc, setFotoSrc] = useState("");
-
-  useEffect(() => {
-    const fetchDeps = async () => {
-      try {
-        const deps = await getDependencias();
-        setDependencias(deps || []);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchDeps();
-  }, []);
 
   useEffect(() => {
     let active = true;
