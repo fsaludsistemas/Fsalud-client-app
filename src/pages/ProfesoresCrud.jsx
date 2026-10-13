@@ -50,7 +50,7 @@ const ALL_FILTER = "TODOS";
 
 const ProfesoresCrud = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { dependencias } = useDependencias();
   const canManageDependencies = ["SISTEMAS", "ADMINISTRADOR"].includes(
     user?.permiso,
@@ -96,6 +96,8 @@ const ProfesoresCrud = () => {
 
   const fetchData = useCallback(
     async (search = searchTerm, token = pageToken) => {
+      if (!user) return;
+
       setLoading(true);
       try {
         const [profData, docentePeriodosData] = await Promise.all([
@@ -128,13 +130,15 @@ const ProfesoresCrud = () => {
         setLoading(false);
       }
     },
-    [pageToken, searchTerm],
+    [pageToken, searchTerm, user],
   );
 
   useEffect(() => {
+    if (authLoading || !user) return;
+
     const timeoutId = setTimeout(() => fetchData(searchTerm), 300);
     return () => clearTimeout(timeoutId);
-  }, [fetchData, searchTerm]);
+  }, [authLoading, user, fetchData, searchTerm]);
 
   const periodosByProfesor = useMemo(() => {
     return docentePeriodos.reduce((groups, docentePeriodo) => {

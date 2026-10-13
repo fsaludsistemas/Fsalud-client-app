@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { getDependencias } from "../api/apiClient";
+import { useAuth } from "./AuthContext";
 
 const DependenciasContext = createContext(null);
 
 export const DependenciasProvider = ({ children }) => {
+  const { user, loading: authLoading } = useAuth();
   const [dependencias, setDependencias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,8 +35,10 @@ export const DependenciasProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    if (authLoading || !user) return;
+
     refreshDependencias().catch(() => {});
-  }, [refreshDependencias]);
+  }, [authLoading, user, refreshDependencias]);
 
   return (
     <DependenciasContext.Provider
