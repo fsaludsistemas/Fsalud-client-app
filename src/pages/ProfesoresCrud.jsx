@@ -95,7 +95,7 @@ const ProfesoresCrud = () => {
   const [formError, setFormError] = useState("");
 
   const fetchData = useCallback(
-    async (search = searchTerm, token = pageToken) => {
+    async (search = "", token = pageToken) => {
       if (!user) return;
 
       setLoading(true);
@@ -130,7 +130,7 @@ const ProfesoresCrud = () => {
         setLoading(false);
       }
     },
-    [pageToken, searchTerm, user],
+    [pageToken, user],
   );
 
   useEffect(() => {

@@ -10,6 +10,29 @@ const apiClient = axios.create({
   },
 });
 
+// Catálogos que cambian poco: evita repetir la misma petición entre pantallas
+// y deduplica solicitudes simultáneas (por ejemplo, con StrictMode en desarrollo).
+const GET_CACHE_TTL = 60_000;
+const getCache = new Map();
+
+const cachedGet = (key, request) => {
+  const cached = getCache.get(key);
+  if (cached && Date.now() - cached.timestamp < GET_CACHE_TTL) {
+    return cached.promise;
+  }
+
+  const promise = request().catch((error) => {
+    getCache.delete(key);
+    throw error;
+  });
+  getCache.set(key, { promise, timestamp: Date.now() });
+  return promise;
+};
+
+const invalidateGetCache = (...keys) => {
+  keys.forEach((key) => getCache.delete(key));
+};
+
 // Interceptor to add the Firebase ID Token to every request
 apiClient.interceptors.request.use(
   async (config) => {
@@ -31,22 +54,27 @@ apiClient.interceptors.request.use(
 
 // Dependencias API services
 export const getDependencias = async () => {
-  const response = await apiClient.get("/dependencias");
-  return response.data;
+  return cachedGet("dependencias", async () => {
+    const response = await apiClient.get("/dependencias");
+    return response.data;
+  });
 };
 
 export const createDependencia = async (data) => {
   const response = await apiClient.post("/dependencias", data);
+  invalidateGetCache("dependencias");
   return response.data;
 };
 
 export const updateDependencia = async (id, data) => {
   const response = await apiClient.put(`/dependencias/${id}`, data);
+  invalidateGetCache("dependencias");
   return response.data;
 };
 
 export const deleteDependencia = async (id) => {
   const response = await apiClient.delete(`/dependencias/${id}`);
+  invalidateGetCache("dependencias");
   return response.data;
 };
 
@@ -96,28 +124,35 @@ export const deleteProfesor = async (id) => {
 
 // Periodos API services
 export const getPeriodos = async () => {
-  const response = await apiClient.get("/periodos");
-  return response.data;
+  return cachedGet("periodos", async () => {
+    const response = await apiClient.get("/periodos");
+    return response.data;
+  });
 };
 
 // Docente Periodos API services
 export const getDocentePeriodos = async () => {
-  const response = await apiClient.get("/docente-periodos");
-  return response.data;
+  return cachedGet("docente-periodos", async () => {
+    const response = await apiClient.get("/docente-periodos");
+    return response.data;
+  });
 };
 
 export const createDocentePeriodo = async (data) => {
   const response = await apiClient.post("/docente-periodos", data);
+  invalidateGetCache("docente-periodos");
   return response.data;
 };
 
 export const updateDocentePeriodo = async (id, data) => {
   const response = await apiClient.put(`/docente-periodos/${id}`, data);
+  invalidateGetCache("docente-periodos");
   return response.data;
 };
 
 export const deleteDocentePeriodo = async (id) => {
   const response = await apiClient.delete(`/docente-periodos/${id}`);
+  invalidateGetCache("docente-periodos");
   return response.data;
 };
 
