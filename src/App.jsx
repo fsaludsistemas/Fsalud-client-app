@@ -10,6 +10,7 @@ import DatosProfesor from "./pages/DatosProfesor";
 import AsignacionesProfesor from "./pages/AsignacionesProfesor";
 import CredencialesProfesor from "./pages/CredencialesProfesor";
 import UsuariosCrud from "./pages/UsuariosCrud";
+import Dashboard from "./pages/Dashboard";
 import { useAuth } from "./context/AuthContext";
 
 function NonPresidentProfessorPage({ children }) {
@@ -29,7 +30,7 @@ function App() {
           {/* Protected Routes (nested inside ProtectedRoute & Layout) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/" element={<ProfesoresCrud />} />
+              <Route path="/" element={<Dashboard />} />
               <Route path="/dependencias" element={<DependenciasCrud />} />
               <Route path="/usuarios" element={<UsuariosCrud />} />
               <Route path="/profesores" element={<ProfesoresCrud />} />
