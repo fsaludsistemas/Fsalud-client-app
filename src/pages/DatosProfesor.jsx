@@ -4,7 +4,7 @@ import {
   getProfesorById,
   getDependencias,
   getPeriodos,
-  getDocentePeriodos,
+  getDocentePeriodosByProfesor,
   createDocentePeriodo,
   updateDocentePeriodo,
   deleteDocentePeriodo,
@@ -121,14 +121,12 @@ const DatosProfesor = () => {
           getProfesorById(id),
           getDependencias(),
           getPeriodos(),
-          getDocentePeriodos(),
+          getDocentePeriodosByProfesor(id),
         ]);
       setProfesor(profData);
       setDependencias(depData || []);
       setPeriodos(periodosData || []);
-      setDocentePeriodos(
-        (docentePeriodosData || []).filter((dp) => dp.profesor_id === id),
-      );
+      setDocentePeriodos(docentePeriodosData || []);
     } catch (err) {
       console.error(err);
       setError("Error al cargar la información del profesor.");
@@ -302,7 +300,7 @@ const DatosProfesor = () => {
   return (
     <Box>
       <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate("/profesores")} color="primary">
+        <IconButton onClick={() => navigate("/")} color="primary">
           <ArrowBackIcon />
         </IconButton>
         <Typography
@@ -311,16 +309,13 @@ const DatosProfesor = () => {
         >
           Detalle del Profesor
         </Typography>
-        
       </Stack>
 
       {!loading && !error && profesor && (
         <DetailProfesor profesor={profesor} docentePeriodos={docentePeriodos} />
       )}
 
-      <ProfesorTabs
-        profesorId={id}
-      />
+      <ProfesorTabs profesorId={id} />
 
       {loading && (
         <Box display="flex" justifyContent="center" py={8}>
@@ -349,9 +344,7 @@ const DatosProfesor = () => {
           )}
           <Stack spacing={3}>
             <Box>
-
               <Grid container spacing={2}>
-                
                 <DetailRow
                   label="Email institucional"
                   value={correoCompleto}
@@ -400,7 +393,11 @@ const DatosProfesor = () => {
                 />
                 <DetailRow
                   label="Fecha de nacimiento"
-                  value={profesor.fecha_nacimiento ? String(profesor.fecha_nacimiento).slice(0, 10) : "—"}
+                  value={
+                    profesor.fecha_nacimiento
+                      ? String(profesor.fecha_nacimiento).slice(0, 10)
+                      : "—"
+                  }
                 />
               </Grid>
             </Box>
@@ -408,7 +405,11 @@ const DatosProfesor = () => {
               <Grid container spacing={2}>
                 <DetailRow
                   label="Fecha de vinculación"
-                  value={profesor.fecha_vinculacion ? String(profesor.fecha_vinculacion).slice(0, 10) : "—"}
+                  value={
+                    profesor.fecha_vinculacion
+                      ? String(profesor.fecha_vinculacion).slice(0, 10)
+                      : "—"
+                  }
                 />
               </Grid>
             </Box>
@@ -709,7 +710,9 @@ const DatosProfesor = () => {
                   {editDatosError}
                 </Alert>
               )}
-              <Typography sx={{ fontWeight: "bold", color: "#37474f" }}>Lugar de nacimiento</Typography>
+              <Typography sx={{ fontWeight: "bold", color: "#37474f" }}>
+                Lugar de nacimiento
+              </Typography>
               <TextField
                 value={editDatosForm.lugar_nacimiento}
                 onChange={(e) =>
@@ -720,7 +723,9 @@ const DatosProfesor = () => {
                 }
                 fullWidth
               />
-              <Typography sx={{ fontWeight: "bold", color: "#37474f" }} >Fecha de nacimiento</Typography>
+              <Typography sx={{ fontWeight: "bold", color: "#37474f" }}>
+                Fecha de nacimiento
+              </Typography>
               <TextField
                 type="date"
                 value={editDatosForm.fecha_nacimiento}
@@ -733,7 +738,9 @@ const DatosProfesor = () => {
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
-              <Typography sx={{ fontWeight: "bold", color: "#37474f" }}>Fecha de vinculación</Typography>
+              <Typography sx={{ fontWeight: "bold", color: "#37474f" }}>
+                Fecha de vinculación
+              </Typography>
               <TextField
                 type="date"
                 value={editDatosForm.fecha_vinculacion}

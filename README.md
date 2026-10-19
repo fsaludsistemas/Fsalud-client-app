@@ -453,6 +453,43 @@ Retorna todos los registros de docente-periodo.
 
 ---
 
+
+#### `GET /api/docente-periodos/profesor/:profesorId`
+
+Retorna todos los periodos docentes asociados a un profesor específico. La
+respuesta incluye la información expandida de cada periodo.
+
+**Ejemplo:**
+
+```text
+GET /api/docente-periodos/profesor/10015949
+```
+
+Si el profesor no tiene registros asociados, devuelve un arreglo vacío (`[]`).
+
+**Respuesta `200`:**
+
+```json
+[
+  {
+    "id": "10015949_2026-1",
+    "profesor_id": "10015949",
+    "periodo_id": "2026-1",
+    "tipo_vinculacion": "NOMBRADO",
+    "dedicacion": "COMPLETO",
+    "cargo": "ASISTENTE",
+    "nivel": "MAESTRIA",
+    "estado": "ACTIVO",
+    "periodo": {
+      "id": "2026-1",
+      "periodo": "2026-1"
+    }
+  }
+]
+```
+
+---
+
 #### `GET /api/docente-periodos/:id`
 
 Retorna un registro por su ID compuesto.

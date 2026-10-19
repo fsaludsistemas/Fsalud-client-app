@@ -152,7 +152,7 @@ export default function UsuariosCrud() {
   return (
     <Box>
       <Stack direction="row" alignItems="center" sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate("/profesores")}>
+        <IconButton onClick={() => navigate("/")}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ fontWeight: "bold", flexGrow: 1 }}>

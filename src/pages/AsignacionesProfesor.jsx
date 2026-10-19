@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getProfesorById,
-  getDocentePeriodos,
+  getDocentePeriodosByProfesor,
   getAsignacionesByProfesor,
   getResumenHoras,
   createAsignacion,
@@ -114,12 +114,10 @@ const AsignacionesProfesor = () => {
       const [profData, docentePeriodosData, asignacionesData] =
         await Promise.all([
           getProfesorById(id),
-          getDocentePeriodos(),
+          getDocentePeriodosByProfesor(id),
           getAsignacionesByProfesor(id),
         ]);
-      const periodosDelProfesor = (docentePeriodosData || []).filter(
-        (dp) => dp.profesor_id === id,
-      );
+      const periodosDelProfesor = docentePeriodosData || [];
       const resumenes = await Promise.all(
         periodosDelProfesor.map(async (dp) => [
           String(dp.id),
@@ -412,7 +410,7 @@ const AsignacionesProfesor = () => {
   return (
     <Box>
       <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate("/profesores")} color="primary">
+        <IconButton onClick={() => navigate("/")} color="primary">
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ fontWeight: "bold", color: "#37474f" }}>
@@ -424,9 +422,7 @@ const AsignacionesProfesor = () => {
         <DetailProfesor profesor={profesor} docentePeriodos={docentePeriodos} />
       )}
 
-      <ProfesorTabs
-        profesorId={id}
-      />
+      <ProfesorTabs profesorId={id} />
 
       {loading ? (
         <Box display="flex" justifyContent="center" py={8}>
