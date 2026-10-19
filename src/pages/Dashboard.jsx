@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useDependencias } from "../context/DependenciasContext";
@@ -21,6 +22,12 @@ import {
   Paper,
   Select,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -43,6 +50,42 @@ const FILTER_LABELS = {
   cargo: "Cargo",
   nivel: "Nivel",
 };
+const FACTOR_GROUPS = [
+  {
+    label: "Títulos universitarios",
+    subfactors: [
+      { label: "Pregrado", keys: ["pregrado", "titulos_pregrado"] },
+      { label: "Posgrado", keys: ["posgrado", "titulos_posgrado"] },
+    ],
+  },
+  {
+    label: "Categoría",
+    subfactors: [{ label: "Categoría", keys: ["categoria", "historial_categoria"] }],
+  },
+  {
+    label: "Experiencia calificada",
+    subfactors: [
+      {
+        label: "Tiempo parcial",
+        keys: ["tiempo_parcial", "exp_tiempo_parcial", "experiencia_tiempo_parcial"],
+      },
+      {
+        label: "Hora cátedra",
+        keys: ["hora_catedra", "exp_hora_catedra", "experiencia_hora_catedra"],
+      },
+    ],
+  },
+  {
+    label: "Productividad académica",
+    subfactors: [
+      { label: "Productividad académica", keys: ["productividad", "productividad_academica"] },
+      { label: "Premios", keys: ["premios", "premios_patentes", "premios_y_patentes"] },
+      { label: "Patentes", keys: ["patentes"] },
+      { label: "Extensión destacada", keys: ["extension", "extension_destacada"] },
+      { label: "Docencia destacada", keys: ["docencia", "docencia_destacada"] },
+    ],
+  },
+];
 const entries = (value) =>
   Object.entries(value || {}).filter(([, n]) => Number(n) > 0);
 
@@ -196,8 +239,61 @@ function EventsChart({ rows }) {
 }
 
 function FactorsChart({ data }) {
-  const values = entries(data);
-  return <BarChart layout="horizontal" height={Math.max(300, values.length * 38)} margin={{ left: 165, right: 32, top: 24, bottom: 24 }} yAxis={[{ scaleType: "band", data: values.map(([key]) => key.replaceAll("_", " ")) }]} series={[{ label: "Registros", data: values.map(([, value]) => Number(value)), color: "#00897b" }]} />;
+  const source = data || {};
+  const getCount = (keys) => keys.reduce((total, key) => total + Number(source[key] || 0), 0);
+  const values = FACTOR_GROUPS.map((group) => ({
+    ...group,
+    subvalues: group.subfactors.map((subfactor) => [subfactor.label, getCount(subfactor.keys)]),
+  }));
+  const total = values.reduce(
+    (sum, group) => sum + group.subvalues.reduce((groupTotal, [, value]) => groupTotal + value, 0),
+    0,
+  );
+
+  return (
+    <TableContainer
+      component={Paper}
+      variant="outlined"
+      sx={{ borderRadius: 2, overflow: "hidden" }}
+    >
+      <Table size="small" aria-label="Factores registrados">
+        <TableHead sx={{ bgcolor: "#e0f2f1" }}>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 700, color: "#37474f" }}>
+              Factor
+            </TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, color: "#37474f" }}>
+              Cantidad
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {values.map((group) => (
+            <Fragment key={group.label}>
+              <TableRow sx={{ bgcolor: "#b2dfdb" }}>
+                <TableCell sx={{ fontWeight: 700, color: "#263238" }}>{group.label}</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: "#00695c" }}>
+                  {group.subvalues.reduce((sum, [, value]) => sum + value, 0)}
+                </TableCell>
+              </TableRow>
+              {group.subvalues.map(([label, value]) => (
+                <TableRow key={`${group.label}-${label}`} sx={{ bgcolor: "#f7fbfb" }}>
+                  <TableCell sx={{ pl: 4, color: "#455a64" }}>{label}</TableCell>
+                  <TableCell align="right" sx={{ color: "#00897b" }}>{value}</TableCell>
+                </TableRow>
+              ))}
+            </Fragment>
+          ))}
+          <TableRow sx={{ bgcolor: "#f1f8e9" }}>
+            <TableCell sx={{ fontWeight: 700, color: "#37474f" }}>Total</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, color: "#2e7d32" }}>
+              {total}
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 }
 
 const Dashboard = () => {
