@@ -7,7 +7,7 @@ import {
   patchCredenciales,
   createCredencialEvento,
   getProximoEvento,
-  getDocentePeriodos,
+  getDocentePeriodosByProfesor,
   uploadStorageFile,
   addFirmaPresidente,
 } from "../api/apiClient";
@@ -818,7 +818,9 @@ const getEventFactorItems = (credenciales, key, eventNumber) => {
     experiencia_calificada: ["exp_tiempo_parcial", "exp_hora_catedra"],
     productividad_academica: ["productividad"],
   };
-  return (sources[key] || []).flatMap((source) => getItems(credenciales, source)).filter((entry) => String(entry.evento_no) === String(eventNumber));
+  return (sources[key] || [])
+    .flatMap((source) => getItems(credenciales, source))
+    .filter((entry) => String(entry.evento_no) === String(eventNumber));
 };
 
 const getEventFactorDetails = (credenciales, key, eventNumber) => {
@@ -831,22 +833,37 @@ const getEventFactorDetails = (credenciales, key, eventNumber) => {
     docencia_destacada: "evento_no",
     extension_destacada: "evento_no",
   };
-  const matches = (factorKey, relation = relationByFactor[factorKey] || "evento_no") => {
-    return getItems(credenciales, factorKey).filter((entry) => String(entry[relation]) === String(eventNumber));
+  const matches = (
+    factorKey,
+    relation = relationByFactor[factorKey] || "evento_no",
+  ) => {
+    return getItems(credenciales, factorKey).filter(
+      (entry) => String(entry[relation]) === String(eventNumber),
+    );
   };
-  if (key === "titulos_universitarios") return { pregrado: matches("titulos_pregrado"), posgrado: matches("titulos_posgrado") };
-  if (key === "experiencia_calificada") return { tiempo_parcial: matches("exp_tiempo_parcial"), hora_catedra: matches("exp_hora_catedra") };
+  if (key === "titulos_universitarios")
+    return {
+      pregrado: matches("titulos_pregrado"),
+      posgrado: matches("titulos_posgrado"),
+    };
+  if (key === "experiencia_calificada")
+    return {
+      tiempo_parcial: matches("exp_tiempo_parcial"),
+      hora_catedra: matches("exp_hora_catedra"),
+    };
   if (key === "categoria") return { categoria: matches("categoria") };
-  if (key === "productividad_academica") return {
-    productividad_academica: matches("productividad", "inclusion_no"),
-    docencia_destacada: matches("docencia", "evento_no"),
-    extension_destacada: matches("extension", "evento_no"),
-    premios_y_patentes: matches("premios_patentes", "evento_no"),
-  };
+  if (key === "productividad_academica")
+    return {
+      productividad_academica: matches("productividad", "inclusion_no"),
+      docencia_destacada: matches("docencia", "evento_no"),
+      extension_destacada: matches("extension", "evento_no"),
+      premios_y_patentes: matches("premios_patentes", "evento_no"),
+    };
   return { registros: getEventFactorItems(credenciales, key, eventNumber) };
 };
 
-const prettyField = (key) => key.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+const prettyField = (key) =>
+  key.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const formatFieldValue = (value) => {
   if (value === null || value === undefined) return "—";
@@ -891,21 +908,57 @@ const FactorDetails = ({ details }) => (
       };
       const factorKey = sectionToFactorKey[section] || section;
       return (
-        <Paper key={section} variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>{prettyField(section)}</Typography>
-          {!records.length ? <Typography color="text.secondary">No hay datos para este factor en este evento.</Typography> : (
-            <Stack spacing={1.5}>{records.map((record, index) => (
-              <Paper key={record.id || index} variant="outlined" sx={{ p: 1.5, bgcolor: "white" }}>
-                <Stack spacing={0.5}>{getOrderedRecordEntries(record, factorKey).map(([key, value, label, type]) => (
-                  <Stack key={key} direction={{ xs: "column", sm: "row" }} spacing={1}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 170 }}>{label}:</Typography>
-                    <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                      {type === "date" ? (value ? String(value).slice(0, 10) : "—") : formatFieldValue(value)}
-                    </Typography>
+        <Paper
+          key={section}
+          variant="outlined"
+          sx={{ p: 2, bgcolor: "#fafafa" }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+            {prettyField(section)}
+          </Typography>
+          {!records.length ? (
+            <Typography color="text.secondary">
+              No hay datos para este factor en este evento.
+            </Typography>
+          ) : (
+            <Stack spacing={1.5}>
+              {records.map((record, index) => (
+                <Paper
+                  key={record.id || index}
+                  variant="outlined"
+                  sx={{ p: 1.5, bgcolor: "white" }}
+                >
+                  <Stack spacing={0.5}>
+                    {getOrderedRecordEntries(record, factorKey).map(
+                      ([key, value, label, type]) => (
+                        <Stack
+                          key={key}
+                          direction={{ xs: "column", sm: "row" }}
+                          spacing={1}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 600, minWidth: 170 }}
+                          >
+                            {label}:
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ wordBreak: "break-word" }}
+                          >
+                            {type === "date"
+                              ? value
+                                ? String(value).slice(0, 10)
+                                : "—"
+                              : formatFieldValue(value)}
+                          </Typography>
+                        </Stack>
+                      ),
+                    )}
                   </Stack>
-                ))}</Stack>
-              </Paper>
-            ))}</Stack>
+                </Paper>
+              ))}
+            </Stack>
           )}
         </Paper>
       );
@@ -975,7 +1028,7 @@ const CredencialesProfesor = () => {
       // de un segundo await hacía que la carga quedara serializada.
       const [profData, docentePeriodosData, credResult] = await Promise.all([
         getProfesorById(id),
-        getDocentePeriodos(),
+        getDocentePeriodosByProfesor(id),
         getCredencialesByProfesor(id).then(
           (data) => ({ data }),
           (err) => ({ error: err }),
@@ -987,9 +1040,7 @@ const CredencialesProfesor = () => {
       }
 
       setProfesor(profData);
-      setDocentePeriodos(
-        (docentePeriodosData || []).filter((dp) => dp.profesor_id === id),
-      );
+      setDocentePeriodos(docentePeriodosData || []);
       setCredenciales(credResult.data ?? null);
     } catch (err) {
       console.error(err);
@@ -1319,10 +1370,14 @@ const CredencialesProfesor = () => {
       const response = await addFirmaPresidente(id, item.numero_evento, url);
       setCredenciales((current) => {
         if (response.credenciales) return response.credenciales;
-        const updatedEvents = (current?.eventos_credenciales || []).map((event) =>
-          event.numero_evento === item.numero_evento
-            ? { ...event, soporte: { ...event.soporte, firma_presidente_url: url } }
-            : event,
+        const updatedEvents = (current?.eventos_credenciales || []).map(
+          (event) =>
+            event.numero_evento === item.numero_evento
+              ? {
+                  ...event,
+                  soporte: { ...event.soporte, firma_presidente_url: url },
+                }
+              : event,
         );
         return { ...current, eventos_credenciales: updatedEvents };
       });
@@ -1342,7 +1397,7 @@ const CredencialesProfesor = () => {
   return (
     <Box>
       <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate("/profesores")} color="primary">
+        <IconButton onClick={() => navigate("/")} color="primary">
           <ArrowBackIcon />
         </IconButton>
         <Typography
@@ -1357,10 +1412,7 @@ const CredencialesProfesor = () => {
         <DetailProfesor profesor={profesor} docentePeriodos={docentePeriodos} />
       )}
 
-      <ProfesorTabs
-        profesorId={id}
-        isPresident={isPresident}
-      />
+      <ProfesorTabs profesorId={id} isPresident={isPresident} />
 
       {success && (
         <Alert severity="success" onClose={() => setSuccess("")} sx={{ mb: 2 }}>
@@ -1387,9 +1439,14 @@ const CredencialesProfesor = () => {
           )}
 
           {FACTORES.map((factor) => {
-            const items = factor.key === "eventos_credenciales"
-              ? [...getItems(credenciales, factor.key)].sort((a, b) => Number(b.numero_evento || 0) - Number(a.numero_evento || 0))
-              : getItems(credenciales, factor.key);
+            const items =
+              factor.key === "eventos_credenciales"
+                ? [...getItems(credenciales, factor.key)].sort(
+                    (a, b) =>
+                      Number(b.numero_evento || 0) -
+                      Number(a.numero_evento || 0),
+                  )
+                : getItems(credenciales, factor.key);
             const group = FACTOR_GROUPS.find((entry) =>
               entry.keys.includes(factor.key),
             );
@@ -2178,25 +2235,30 @@ const CredencialesProfesor = () => {
           {factorInfo && (
             <Stack spacing={1}>
               <Typography>
-                {`Evento N.° ${factorInfo.event.numero_evento} - Puntos del evento: ${formatPts(
-                  factorInfo.event.factores_puntaje?.[factorInfo.factor.key]
-                    ?.puntos_evento,
-                ) || "—"} - Acumulado: ${formatPts(
-                  factorInfo.event.factores_puntaje?.[factorInfo.factor.key]
-                    ?.total_acumulado,
-                ) || "—"}`}
+                {`Evento N.° ${factorInfo.event.numero_evento} - Puntos del evento: ${
+                  formatPts(
+                    factorInfo.event.factores_puntaje?.[factorInfo.factor.key]
+                      ?.puntos_evento,
+                  ) || "—"
+                } - Acumulado: ${
+                  formatPts(
+                    factorInfo.event.factores_puntaje?.[factorInfo.factor.key]
+                      ?.total_acumulado,
+                  ) || "—"
+                }`}
               </Typography>
-              <Box
-                component="div"
-              >
-                <FactorDetails details={getEventFactorDetails(
+              <Box component="div">
+                <FactorDetails
+                  details={getEventFactorDetails(
                     credenciales,
                     factorInfo.factor.key,
                     factorInfo.event.numero_evento,
-                )}
-                />{/*
+                  )}
+                />
+                {/*
                 ) || "Sin información detallada."}
-                */}</Box>
+                */}
+              </Box>
             </Stack>
           )}
         </DialogContent>

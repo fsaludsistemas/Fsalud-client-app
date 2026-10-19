@@ -33,6 +33,12 @@ const invalidateGetCache = (...keys) => {
   keys.forEach((key) => getCache.delete(key));
 };
 
+const invalidateGetCacheByPrefix = (prefix) => {
+  [...getCache.keys()]
+    .filter((key) => key.startsWith(prefix))
+    .forEach((key) => getCache.delete(key));
+};
+
 // Interceptor to add the Firebase ID Token to every request
 apiClient.interceptors.request.use(
   async (config) => {
@@ -138,6 +144,15 @@ export const getDocentePeriodos = async () => {
   });
 };
 
+export const getDocentePeriodosByProfesor = async (profesorId) => {
+  return cachedGet(`docente-periodos-profesor-${profesorId}`, async () => {
+    const response = await apiClient.get(
+      `/docente-periodos/profesor/${profesorId}`,
+    );
+    return response.data;
+  });
+};
+
 export const getDashboardStats = async (filters = {}) => {
   const response = await apiClient.get("/estadisticas/dashboard", {
     params: Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== "" && value != null)),
@@ -153,18 +168,21 @@ export const rebuildDashboardStats = async () => {
 export const createDocentePeriodo = async (data) => {
   const response = await apiClient.post("/docente-periodos", data);
   invalidateGetCache("docente-periodos");
+  invalidateGetCacheByPrefix("docente-periodos-profesor-");
   return response.data;
 };
 
 export const updateDocentePeriodo = async (id, data) => {
   const response = await apiClient.put(`/docente-periodos/${id}`, data);
   invalidateGetCache("docente-periodos");
+  invalidateGetCacheByPrefix("docente-periodos-profesor-");
   return response.data;
 };
 
 export const deleteDocentePeriodo = async (id) => {
   const response = await apiClient.delete(`/docente-periodos/${id}`);
   invalidateGetCache("docente-periodos");
+  invalidateGetCacheByPrefix("docente-periodos-profesor-");
   return response.data;
 };
 

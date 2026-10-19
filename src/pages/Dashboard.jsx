@@ -50,6 +50,13 @@ const FILTER_LABELS = {
   cargo: "Cargo",
   nivel: "Nivel",
 };
+const CARGO_CARDS = [
+  { key: "ASISTENTE", label: "Asistente" },
+  { key: "TITULAR", label: "Titular" },
+  { key: "SIN CARGO", label: "Sin cargo" },
+  { key: "ASOCIADO", label: "Asociado" },
+  { key: "AUXILIAR", label: "Auxiliar" },
+];
 const FACTOR_GROUPS = [
   {
     label: "Títulos universitarios",
@@ -481,7 +488,11 @@ const Dashboard = () => {
           </Stack>
         </Stack>
       </Paper>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        sx={{ mb: 3, flexWrap: { sm: "wrap" } }}
+      >
         <Card sx={{ flex: 1, bgcolor: "#e3f2fd" }}>
           <CardContent>
             <Typography color="text.secondary">Total de docentes</Typography>
@@ -490,18 +501,16 @@ const Dashboard = () => {
             </Typography>
           </CardContent>
         </Card>
-        {entries(stats?.profesores?.por_cargo)
-          .slice(0, 4)
-          .map(([k, n]) => (
-            <Card key={k} sx={{ flex: 1 }}>
-              <CardContent>
-                <Typography color="text.secondary">{k}</Typography>
-                <Typography variant="h4" fontWeight="bold">
-                  {n}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))}
+        {CARGO_CARDS.map(({ key, label }) => (
+          <Card key={key} sx={{ flex: 1, minWidth: { sm: 150 } }}>
+            <CardContent>
+              <Typography color="text.secondary">{label}</Typography>
+              <Typography variant="h4" fontWeight="bold">
+                {stats?.profesores?.por_cargo?.[key] || 0}
+              </Typography>
+            </CardContent>
+          </Card>
+        ))}
       </Stack>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
         <Donut
