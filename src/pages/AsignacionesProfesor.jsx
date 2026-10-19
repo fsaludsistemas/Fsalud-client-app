@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   getProfesorById,
   getDocentePeriodos,
@@ -11,8 +11,6 @@ import {
 } from "../api/apiClient";
 import {
   Box,
-  Tabs,
-  Tab,
   Typography,
   Paper,
   Stack,
@@ -47,28 +45,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DetailProfesor from "../components/DetailProfesor";
-
-const ProfesorTabs = ({ value, onChange, profesorId }) => (
-  <Tabs
-    value={value}
-    onChange={onChange}
-    sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
-  >
-    <Tab component={Link} to={`/profesores/${profesorId}/datos`} label="Datos generales" value={`/profesores/${profesorId}/datos`} />
-    <Tab
-      component={Link}
-      to={`/profesores/${profesorId}/asignaciones`}
-      label="Asignaciones"
-      value={`/profesores/${profesorId}/asignaciones`}
-    />
-    <Tab
-      component={Link}
-      to={`/profesores/${profesorId}/credenciales`}
-      label="Credenciales"
-      value={`/profesores/${profesorId}/credenciales`}
-    />
-  </Tabs>
-);
+import ProfesorTabs from "../components/ProfesorTabs";
 
 const FORM_DEFAULT = {
   docente_periodo_id: "",
@@ -448,8 +425,6 @@ const AsignacionesProfesor = () => {
       )}
 
       <ProfesorTabs
-        value={`/profesores/${id}/asignaciones`}
-        onChange={(_, next) => navigate(next)}
         profesorId={id}
       />
 

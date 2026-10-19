@@ -138,6 +138,18 @@ export const getDocentePeriodos = async () => {
   });
 };
 
+export const getDashboardStats = async (filters = {}) => {
+  const response = await apiClient.get("/estadisticas/dashboard", {
+    params: Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== "" && value != null)),
+  });
+  return response.data;
+};
+
+export const rebuildDashboardStats = async () => {
+  const response = await apiClient.post("/estadisticas/dashboard/reconstruir");
+  return response.data;
+};
+
 export const createDocentePeriodo = async (data) => {
   const response = await apiClient.post("/docente-periodos", data);
   invalidateGetCache("docente-periodos");

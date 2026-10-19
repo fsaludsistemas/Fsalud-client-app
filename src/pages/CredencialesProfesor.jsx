@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   getProfesorById,
   getCredencialesByProfesor,
@@ -14,8 +14,6 @@ import {
 import { useAuth } from "../context/AuthContext";
 import {
   Box,
-  Tabs,
-  Tab,
   Typography,
   Paper,
   Stack,
@@ -49,6 +47,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DetailProfesor from "../components/DetailProfesor";
+import ProfesorTabs from "../components/ProfesorTabs";
 import ProtectedFileLink from "../components/ProtectedFileLink";
 import { fetchProtectedFile } from "../utils/protectedFile";
 
@@ -81,25 +80,6 @@ const ProtectedFilePreview = ({ url, alt }) => {
     <Typography variant="caption">Cargando…</Typography>
   );
 };
-
-const ProfesorTabs = ({ value, onChange, profesorId, isPresident }) => (
-  <Tabs
-    value={value}
-    onChange={onChange}
-    sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
-  >
-    {!isPresident && <>
-      <Tab component={Link} to={`/profesores/${profesorId}/datos`} label="Datos generales" value={`/profesores/${profesorId}/datos`} />
-      <Tab component={Link} to={`/profesores/${profesorId}/asignaciones`} label="Asignaciones" value={`/profesores/${profesorId}/asignaciones`} />
-    </>}
-    <Tab
-      component={Link}
-      to={`/profesores/${profesorId}/credenciales`}
-      label="Credenciales"
-      value={`/profesores/${profesorId}/credenciales`}
-    />
-  </Tabs>
-);
 
 const emptyCredenciales = (profesorId) => ({
   profesor_id: profesorId,
@@ -991,24 +971,26 @@ const CredencialesProfesor = () => {
     setLoading(true);
     setError("");
     try {
-      const [profData, docentePeriodosData] = await Promise.all([
+      // Las tres fuentes son independientes. Pedir las credenciales dentro
+      // de un segundo await hacía que la carga quedara serializada.
+      const [profData, docentePeriodosData, credResult] = await Promise.all([
         getProfesorById(id),
         getDocentePeriodos(),
+        getCredencialesByProfesor(id).then(
+          (data) => ({ data }),
+          (err) => ({ error: err }),
+        ),
       ]);
+
+      if (credResult.error && credResult.error.response?.status !== 404) {
+        throw credResult.error;
+      }
+
       setProfesor(profData);
       setDocentePeriodos(
         (docentePeriodosData || []).filter((dp) => dp.profesor_id === id),
       );
-      try {
-        const credData = await getCredencialesByProfesor(id);
-        setCredenciales(credData);
-      } catch (credErr) {
-        if (credErr.response?.status === 404) {
-          setCredenciales(null);
-        } else {
-          throw credErr;
-        }
-      }
+      setCredenciales(credResult.data ?? null);
     } catch (err) {
       console.error(err);
       setError("Error al cargar las credenciales del profesor.");
@@ -1376,8 +1358,6 @@ const CredencialesProfesor = () => {
       )}
 
       <ProfesorTabs
-        value={`/profesores/${id}/credenciales`}
-        onChange={(_, next) => navigate(next)}
         profesorId={id}
         isPresident={isPresident}
       />

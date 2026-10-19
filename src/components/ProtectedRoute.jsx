@@ -11,9 +11,11 @@ const ProtectedRoute = () => {
     return (
       <Box
         display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
+        sx={{
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
       >
         <CircularProgress />
       </Box>
