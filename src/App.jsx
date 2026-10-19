@@ -11,6 +11,8 @@ import AsignacionesProfesor from "./pages/AsignacionesProfesor";
 import CredencialesProfesor from "./pages/CredencialesProfesor";
 import UsuariosCrud from "./pages/UsuariosCrud";
 import Dashboard from "./pages/Dashboard";
+import Autoevaluacion from "./pages/Autoevaluacion";
+import Evaluacion from "./pages/Evaluacion";
 import { useAuth } from "./context/AuthContext";
 
 function NonPresidentProfessorPage({ children }) {
@@ -35,6 +37,8 @@ function App() {
               <Route path="/usuarios" element={<UsuariosCrud />} />
               <Route path="/profesores" element={<ProfesoresCrud />} />
               <Route path="/profesores/:id/datos" element={<NonPresidentProfessorPage><DatosProfesor /></NonPresidentProfessorPage>} />
+              <Route path="/profesores/:id/autoevaluacion" element={<Autoevaluacion />} />
+              <Route path="/profesores/:id/evaluacion" element={<Evaluacion />} />
               <Route
                 path="/profesores/:id/asignaciones"
                 element={<NonPresidentProfessorPage><AsignacionesProfesor /></NonPresidentProfessorPage>}

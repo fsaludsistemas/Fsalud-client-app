@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   getProfesorById,
   getDependencias,
@@ -13,8 +13,6 @@ import {
 import { useAuth } from "../context/AuthContext";
 import {
   Box,
-  Tabs,
-  Tab,
   Typography,
   Paper,
   Stack,
@@ -48,6 +46,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DetailProfesor from "../components/DetailProfesor";
+import ProfesorTabs from "../components/ProfesorTabs";
 
 const DetailRow = ({ label, value, action }) => (
   <Grid size={{ xs: 12, sm: 6 }}>
@@ -61,28 +60,6 @@ const DetailRow = ({ label, value, action }) => (
       {action}
     </Stack>
   </Grid>
-);
-
-const ProfesorTabs = ({ value, onChange, profesorId }) => (
-  <Tabs
-    value={value}
-    onChange={onChange}
-    sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
-  >
-    <Tab component={Link} to={`/profesores/${profesorId}/datos`} label="Datos generales" value={`/profesores/${profesorId}/datos`} />
-    <Tab
-      component={Link}
-      to={`/profesores/${profesorId}/asignaciones`}
-      label="Asignaciones"
-      value={`/profesores/${profesorId}/asignaciones`}
-    />
-    <Tab
-      component={Link}
-      to={`/profesores/${profesorId}/credenciales`}
-      label="Credenciales"
-      value={`/profesores/${profesorId}/credenciales`}
-    />
-  </Tabs>
 );
 
 const DOCENTE_DEFAULT = {
@@ -342,8 +319,6 @@ const DatosProfesor = () => {
       )}
 
       <ProfesorTabs
-        value={`/profesores/${id}/datos`}
-        onChange={(_, next) => navigate(next)}
         profesorId={id}
       />
 

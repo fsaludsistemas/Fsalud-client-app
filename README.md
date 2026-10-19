@@ -1861,7 +1861,7 @@ otra forma de procesarla.
 
 ```json
 {
-  "periodo_profesores": "2026-1",
+  "periodo_profesores": "2026-2",
   "profesores": {
     "total": 1000,
     "por_escuela": { "escuela_id": 25 },

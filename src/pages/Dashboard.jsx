@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { useDependencias } from "../context/DependenciasContext";
 import {
   getDashboardStats,
-  getDocentePeriodos,
   rebuildDashboardStats,
   searchProfesores,
 } from "../api/apiClient";
@@ -67,9 +66,11 @@ function Donut({ title, data }) {
   const values = entries(data);
   const total = values.reduce((sum, [, n]) => sum + Number(n), 0);
   return (
-    <Card sx={{ flex: "1 1 260px", minWidth: 240 }}>
-      <CardContent>
-        <Typography variant="h6">{title}</Typography>
+    <Card sx={{ flex: "1 1 260px", minWidth: 240, height: 390 }}>
+      <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <Typography variant="h6" align="center" sx={{ mb: 1, fontWeight: 700, color: "#37474f", borderBottom: 2, borderColor: "primary.main", pb: 1 }}>
+          {title}
+        </Typography>
         <PieChart
           height={230}
           series={[
@@ -92,7 +93,7 @@ function Donut({ title, data }) {
             },
           }}
         />
-        <Typography align="center" fontWeight="bold">
+        <Typography align="center" fontWeight="bold" sx={{ mt: "auto" }}>
           Total: {total}
         </Typography>
       </CardContent>
@@ -101,7 +102,7 @@ function Donut({ title, data }) {
 }
 
 function Bars({ data, dependencies }) {
-  const values = entries(data);
+  const values = entries(data).sort(([, a], [, b]) => Number(b) - Number(a));
   const labels = values.map(
     ([id]) =>
       dependencies.find((d) => String(d.id) === String(id))?.nombre || id,
@@ -111,25 +112,55 @@ function Bars({ data, dependencies }) {
       <CardContent>
         <Typography variant="h6">Docentes por escuela</Typography>
         {values.length ? (
+          <>
           <BarChart
-            height={400}
-            margin={{ left: 48, right: 24, top: 24, bottom: 125 }}
+            height={350}
+            margin={{ left: 48, right: 24, top: 24, bottom: 24 }}
             xAxis={[
               {
                 scaleType: "band",
                 data: labels,
-                tickLabelStyle: { angle: -42, textAnchor: "end", fontSize: 11 },
+                tickLabelInterval: () => false,
+                colorMap: {
+                  type: "ordinal",
+                  values: labels,
+                  colors: [
+                    "#1565c0", "#00897b", "#ef6c00", "#8e24aa",
+                    "#c62828", "#6d4c41", "#3949ab", "#00838f",
+                  ],
+                },
               },
             ]}
             series={[
               {
                 label: "Docentes",
                 data: values.map(([, n]) => Number(n)),
-                color: "#1565c0",
               },
             ]}
             slotProps={{ legend: { hidden: true } }}
           />
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))`,
+              ml: "48px",
+              mr: "24px",
+              mt: 1,
+              gap: 0.5,
+            }}
+          >
+            {labels.map((label) => (
+              <Typography
+                key={label}
+                variant="caption"
+                align="center"
+                sx={{ color: "#37474f", fontWeight: 500, lineHeight: 1.15, overflowWrap: "anywhere" }}
+              >
+                {label}
+              </Typography>
+            ))}
+          </Box>
+          </>
         ) : (
           <Typography color="text.secondary" sx={{ mt: 2 }}>
             No hay datos para mostrar.
@@ -181,7 +212,6 @@ const Dashboard = () => {
     nivel: "",
   });
   const [stats, setStats] = useState(null);
-  const [periodData, setPeriodData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -202,10 +232,9 @@ const Dashboard = () => {
   );
   useEffect(() => {
     if (authLoading || !user) return;
-    Promise.all([getDashboardStats(activeFilters), getDocentePeriodos()])
-      .then(([data, periods]) => {
+    getDashboardStats(activeFilters)
+      .then((data) => {
         setStats(data);
-        setPeriodData(periods || []);
       })
       .catch(() => setError("No fue posible cargar las estadísticas."))
       .finally(() => setLoading(false));
@@ -341,7 +370,9 @@ const Dashboard = () => {
                   onChange={(e) => update(key, e.target.value)}
                 >
                   <MenuItem value={ALL}>Todos</MenuItem>
-                  {[...new Set(periodData.map((p) => p[key]).filter(Boolean))]
+                  {Object.entries(stats?.profesores?.[`por_${key}`] || {})
+                    .filter(([, count]) => Number(count) > 0)
+                    .map(([value]) => value)
                     .sort()
                     .map((v) => (
                       <MenuItem key={v} value={v}>
